@@ -1,0 +1,6 @@
+{
+  "name": "Railway Reservation System",
+  "description": "Professional railway reservation, train scheduling, seat management, and ticket booking web application designed for B.Tech CSE Object Oriented Programming project.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

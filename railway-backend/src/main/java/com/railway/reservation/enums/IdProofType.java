@@ -1,0 +1,23 @@
+package com.railway.reservation.enums;
+
+/**
+ * Enumeration representing officially recognized government identity proof documents.
+ */
+public enum IdProofType {
+    AADHAAR_CARD("Aadhaar Card"),
+    PAN_CARD("PAN Card"),
+    PASSPORT("Passport"),
+    VOTER_ID("Voter ID"),
+    DRIVING_LICENSE("Driving License"),
+    STUDENT_ID("Student ID Card");
+
+    private final String label;
+
+    IdProofType(String label) {
+        this.label = label;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+}

@@ -1,0 +1,77 @@
+[
+  {
+    "pnr": "2849182374",
+    "train": {
+      "trainNumber": "12301",
+      "trainName": "Howrah Rajdhani Express",
+      "trainType": "RAJDHANI",
+      "departureTime": "16:50:00",
+      "arrivalTime": "10:05:00",
+      "durationHours": "17h 15m",
+      "distanceKm": 1451,
+      "daysOfOperation": "Daily"
+    },
+    "sourceStation": {
+      "stationCode": "HWH",
+      "stationName": "Howrah Junction",
+      "city": "Kolkata",
+      "state": "West Bengal",
+      "zone": "Eastern Railway (ER)"
+    },
+    "destinationStation": {
+      "stationCode": "NDLS",
+      "stationName": "New Delhi Railway Station",
+      "city": "New Delhi",
+      "state": "Delhi",
+      "zone": "Northern Railway (NR)"
+    },
+    "journeyDate": "2026-11-09",
+    "travelClass": "THIRD_AC",
+    "bookingStatus": "CONFIRMED",
+    "seatAllocations": [
+      {
+        "allocationId": 1,
+        "passenger": {
+          "passengerId": 1,
+          "fullName": "Shiv Shankar Mal",
+          "age": 21,
+          "gender": "MALE",
+          "phone": "+91 98765 43210",
+          "email": "shiv.cse@lab.edu",
+          "idProofType": "AADHAAR_CARD",
+          "idProofNumber": "7829-4412-9081",
+          "berthPreference": "Lower"
+        },
+        "coachNumber": "B2",
+        "berthNumber": 21,
+        "berthType": "Lower Berth"
+      },
+      {
+        "allocationId": 2,
+        "passenger": {
+          "passengerId": 2,
+          "fullName": "Prof. Rajesh Sharma",
+          "age": 62,
+          "gender": "MALE",
+          "phone": "+91 91234 56780",
+          "email": "rajesh.prof@university.ac.in",
+          "idProofType": "PAN_CARD",
+          "idProofNumber": "ABCPS1234F",
+          "berthPreference": "Lower"
+        },
+        "coachNumber": "B2",
+        "berthNumber": 22,
+        "berthType": "Middle Berth"
+      }
+    ],
+    "baseFare": 3900,
+    "reservationCharge": 80,
+    "superfastCharge": 150,
+    "cateringCharge": 680,
+    "gstAmount": 216.13,
+    "seniorDiscount": 487.5,
+    "totalFare": 4538.63,
+    "bookedAt": "2026-11-03T18:10:44.951Z",
+    "cancellationSlip": null
+  }
+]
