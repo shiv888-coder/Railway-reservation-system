@@ -1,39 +1,28 @@
 package com.railway.reservation.service;
 
-import com.railway.reservation.dto.FareBreakdownDto;
-import com.railway.reservation.entity.BaseTrainEntity;
+import com.railway.reservation.dto.FareBreakdown;
 import com.railway.reservation.enums.CoachClass;
+import com.railway.reservation.model.Passenger;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 /**
- * Service interface for railway tariff and fare calculation.
+ * Service interface for dynamic and database-backed railway fare calculations.
  *
- * OOP Concept: Polymorphism & Strategy Pattern
- * - Dispatches calculateFare calls to polymorphic train subclass instances.
+ * OOP CONCEPTS DEMONSTRATED:
+ * - Method Overloading: Provides overloaded calculateFare() signatures.
  */
 public interface FareCalculationService {
 
     /**
-     * Polymorphically computes total ticket fare for a train journey.
-     *
-     * @param train Train instance (Rajdhani, Vande Bharat, or Superfast)
-     * @param coachClass Requested coach class (e.g. FIRST_AC, THIRD_AC, CHAIR_CAR)
-     * @param passengerCount Total number of seats requested
-     * @param seniorCount Number of senior citizens eligible for discount
-     * @return Total payable fare as BigDecimal
+     * Overloaded method for standard passenger counts without specific passenger age breakdowns.
      */
-    BigDecimal calculateTotalFare(BaseTrainEntity train, CoachClass coachClass, int passengerCount, int seniorCount);
+    FareBreakdown calculateFare(String trainNumber, CoachClass coachClass, int passengerCount);
 
     /**
-     * Generates a detailed itemized fare breakdown (Base Fare, Reservation Fee,
-     * Surcharges, Catering, Senior Concessions, GST) for audit and voucher display.
-     *
-     * @param train Train instance
-     * @param coachClass Requested coach class
-     * @param passengerCount Total passengers
-     * @param seniorCount Senior passengers
-     * @return Detailed FareBreakdownDto
+     * Overloaded method factoring in origin, destination, and passenger demographics (e.g. senior citizen discounts).
      */
-    FareBreakdownDto calculateFareBreakdown(BaseTrainEntity train, CoachClass coachClass, int passengerCount, int seniorCount);
+    FareBreakdown calculateFare(String trainNumber, CoachClass coachClass,
+                                String sourceStationCode, String destinationStationCode,
+                                List<Passenger> passengers);
 }

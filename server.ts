@@ -1,10 +1,14 @@
 import express, { Request, Response } from 'express';
+import http from 'http';
+import { spawn } from 'child_process';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { VERIFIED_STATIONS, VERIFIED_TRAINS } from './src/data/railwayDatasets.ts';
+import { VERIFIED_STATIONS, VERIFIED_TRAINS, ALL_INDIA_STATIONS, ALL_VERIFIED_TRAINS } from './src/data/railwayDatasets.ts';
+import { getStationBoardTimetable } from './src/services/SimulatedTrainGenerator.ts';
+import { TrainFactory } from './src/models/Train.ts';
 
 dotenv.config();
 
@@ -338,7 +342,7 @@ async function startServer() {
    * GET /api/stations
    */
   app.get('/api/stations', (_req: Request, res: Response) => {
-    const list = VERIFIED_STATIONS.map(s => ({
+    const list = ALL_INDIA_STATIONS.map(s => ({
       stationCode: s.code,
       code: s.code,
       stationName: s.name,
@@ -358,7 +362,7 @@ async function startServer() {
    */
   app.get('/api/stations/:code', (req: Request, res: Response) => {
     const code = req.params.code.toUpperCase();
-    const st = VERIFIED_STATIONS.find(s => s.code === code);
+    const st = ALL_INDIA_STATIONS.find(s => s.code === code);
     if (!st) return res.status(404).json({ message: `Station ${code} not found` });
     return res.json({
       stationCode: st.code,
@@ -375,10 +379,49 @@ async function startServer() {
   });
 
   /**
+   * GET /api/railway/stations/:stationCode/board
+   * Live Station Board (Departures & Arrivals)
+   */
+  app.get('/api/railway/stations/:stationCode/board', (req: Request, res: Response) => {
+    const { stationCode } = req.params;
+    const allInstances = ALL_VERIFIED_TRAINS.map(t => TrainFactory.createTrain(t));
+    const entries = getStationBoardTimetable(stationCode, allInstances);
+    return res.json({
+      stationCode: stationCode.toUpperCase(),
+      timestamp: new Date().toISOString(),
+      entries,
+    });
+  });
+
+  /**
+   * GET /api/railway/config
+   * Safe Backend Gateway Diagnostics (Zero secret disclosure)
+   */
+  app.get('/api/railway/config', (_req: Request, res: Response) => {
+    const apiKey = (process.env.RAILWAY_API_KEY || '').trim();
+    const apiHost = (process.env.RAILWAY_API_HOST || '').trim();
+    const apiUrl = (process.env.RAILWAY_API_URL || '').trim();
+
+    return res.json({
+      activeProvider: apiHost ? `RapidAPI: ${apiHost}` : 'Simulated Schedule Timetable',
+      configured: Boolean(apiKey && apiUrl),
+      hasSecretKey: Boolean(apiKey),
+      keyLength: apiKey ? apiKey.length : 0,
+      host: apiHost || 'Unconfigured',
+      urlConfigured: Boolean(apiUrl),
+      cacheTtlSeconds: 60,
+      security: {
+        secretsInFrontend: false,
+        backendProxyOnly: true,
+      },
+    });
+  });
+
+  /**
    * GET /api/trains
    */
   app.get('/api/trains', (_req: Request, res: Response) => {
-    const list = VERIFIED_TRAINS.map(t => ({
+    const list = ALL_VERIFIED_TRAINS.map(t => ({
       trainNumber: t.trainNumber,
       trainName: t.trainName,
       trainCategory: t.trainType.toUpperCase().replace(/\s+/g, '_'),
@@ -422,7 +465,7 @@ async function startServer() {
    */
   app.get('/api/trains/:trainNumber', (req: Request, res: Response) => {
     const { trainNumber } = req.params;
-    const t = VERIFIED_TRAINS.find(tr => tr.trainNumber === trainNumber);
+    const t = ALL_VERIFIED_TRAINS.find(tr => tr.trainNumber === trainNumber);
     if (!t) return res.status(404).json({ message: `Train ${trainNumber} not found` });
 
     return res.json({
@@ -660,6 +703,97 @@ async function startServer() {
       });
     });
     return res.json(passengers);
+  });
+
+  // Launch and proxy to Java 21 / Spring Boot 3 / Thymeleaf Application (Port 8085)
+  const SPRING_BOOT_HOST = '127.0.0.1';
+  const SPRING_BOOT_PORT = 8085;
+
+  let springBootProcess: any = null;
+  const ensureSpringBoot = () => {
+    if (springBootProcess && !springBootProcess.killed && springBootProcess.exitCode === null) {
+      return;
+    }
+    const jarPath = path.resolve(__dirname, 'railway-backend/target/railway-reservation-system-1.0.0.jar');
+    if (fs.existsSync(jarPath)) {
+      console.log('[SpringBoot] Starting Java 21 Spring Boot server on port', SPRING_BOOT_PORT);
+      try {
+        springBootProcess = spawn('java', ['-jar', jarPath, `--server.port=${SPRING_BOOT_PORT}`], {
+          cwd: path.resolve(__dirname, 'railway-backend'),
+          stdio: 'inherit',
+        });
+        springBootProcess.on('exit', (code: number) => {
+          console.warn(`[SpringBoot] Process exited with code ${code}`);
+          springBootProcess = null;
+        });
+        springBootProcess.on('error', (err: any) => {
+          console.error('[SpringBoot] Process spawn error:', err);
+          springBootProcess = null;
+        });
+      } catch (err) {
+        console.error('[SpringBoot] Launch failed:', err);
+        springBootProcess = null;
+      }
+    }
+  };
+
+  ensureSpringBoot();
+
+  // Forward browser page and static requests to Spring Boot
+  app.use((req: Request, res: Response, next) => {
+    ensureSpringBoot();
+    if (req.path.startsWith('/react') || req.path.startsWith('/@vite') || req.path.startsWith('/src/')) {
+      return next();
+    }
+
+    const options = {
+      hostname: SPRING_BOOT_HOST,
+      port: SPRING_BOOT_PORT,
+      path: req.url,
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: `${SPRING_BOOT_HOST}:${SPRING_BOOT_PORT}`,
+      },
+    };
+
+    const proxyReq = http.request(options, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+
+    proxyReq.on('error', () => {
+      res.status(503).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="2">
+          <title>Starting Spring Boot Web Server</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b2545; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+            .box { text-align: center; max-width: 520px; padding: 2.5rem; background: rgba(255,255,255,0.08); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); }
+            .spinner { border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid #f59e0b; border-radius: 50%; width: 44px; height: 44px; animation: spin 0.9s linear infinite; margin: 0 auto 1.5rem auto; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          </style>
+        </head>
+        <body>
+          <div class="box">
+            <div class="spinner"></div>
+            <h2 style="margin-bottom: 0.5rem; font-size: 1.4rem;">Starting Indian Railways Spring Boot Server...</h2>
+            <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 0.75rem;">Loading Java 21, Thymeleaf, and local SQLite database</p>
+            <p style="font-size: 0.8rem; color: #94a3b8;">B.Tech CSE Project &bull; Group 9 &bull; Shiv Shankar Mal (Roll: 27600124048)</p>
+          </div>
+        </body>
+        </html>
+      `);
+    });
+
+    if (req.readable) {
+      req.pipe(proxyReq);
+    } else {
+      proxyReq.end();
+    }
   });
 
   // Mount Vite development middlewares or serve production dist

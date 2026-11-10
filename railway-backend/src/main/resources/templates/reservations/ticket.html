@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title th:text="'E-Ticket — PNR ' + ${reservation.pnr} + ' — Indian Railways'">Printable E-Ticket</title>
+</head>
+<body>
+<section>
+
+    <!-- Top Action Bar (hidden when printing) -->
+    <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+            <a th:href="@{/reservations}" style="color: var(--ir-blue); text-decoration: none; font-size: 0.9rem;">&larr; Back to Booking History</a>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button onclick="window.print()" class="ir-btn ir-btn-primary">
+                🖨️ Print Ticket / Save as PDF
+            </button>
+            <a th:if="${reservation.bookingStatus.name() == 'CONFIRMED'}"
+               th:href="@{'/cancellation?pnr=' + ${reservation.pnr}}"
+               class="ir-btn ir-btn-danger">
+                Cancel Ticket
+            </a>
+        </div>
+    </div>
+
+    <!-- Official Indian Railways Electronic Reservation Slip (ERS) -->
+    <div class="ir-ticket">
+
+        <!-- Ticket Header -->
+        <div class="ir-ticket-header">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="ir-logo-badge" style="width: 56px; height: 56px; font-size: 1.5rem; background: var(--ir-navy); color: white;">
+                    IR
+                </div>
+                <div>
+                    <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--ir-navy); letter-spacing: -0.02em;">
+                        INDIAN RAILWAYS
+                    </h2>
+                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--ir-gold-dark); text-transform: uppercase;">
+                        Electronic Reservation Slip (ERS) &bull; Normal User
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--ir-text-muted);">
+                        Booked At: <span th:text="${reservation.bookedAt}">2026-11-10 10:30:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ir-ticket-pnr-box">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--ir-text-muted); text-transform: uppercase;">
+                    PNR Number
+                </div>
+                <div class="ir-ticket-pnr" th:text="${reservation.pnr}">
+                    2849182374
+                </div>
+                <div class="ir-barcode">
+                    ||| | |||| | ||| || ||| |
+                </div>
+            </div>
+        </div>
+
+        <!-- Train & Route Details -->
+        <div style="background: #f8fafc; border: 1px solid var(--ir-border); border-radius: 6px; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Train No. &amp; Name</span>
+                    <div>
+                        <strong style="color: var(--ir-navy); font-size: 1.05rem;" th:text="${reservation.trainNumber}">12301</strong>
+                        <div th:text="${train != null ? train.trainName : 'Express Service'}" style="font-size: 0.85rem; font-weight: 600;">Howrah Rajdhani</div>
+                    </div>
+                </div>
+
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Class &amp; Quota</span>
+                    <div>
+                        <strong th:text="${reservation.coachClass.code} + ' (' + ${reservation.coachClass.displayName} + ')'">3A (AC 3 Tier)</strong>
+                        <div style="font-size: 0.85rem; color: var(--ir-text-muted);">General Quota (GN)</div>
+                    </div>
+                </div>
+
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Origin Station</span>
+                    <div>
+                        <strong th:text="${sourceStation != null ? sourceStation.stationName : reservation.sourceStationCode}">Howrah Jn</strong>
+                        (<span th:text="${reservation.sourceStationCode}">HWH</span>)
+                        <div style="font-size: 0.85rem;" th:if="${train != null}">
+                            Dep: <strong th:text="${train.departureTime}">16:50</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Destination Station</span>
+                    <div>
+                        <strong th:text="${destinationStation != null ? destinationStation.stationName : reservation.destinationStationCode}">New Delhi</strong>
+                        (<span th:text="${reservation.destinationStationCode}">NDLS</span>)
+                        <div style="font-size: 0.85rem;" th:if="${train != null}">
+                            Arr: <strong th:text="${train.arrivalTime}">10:05</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Date of Journey</span>
+                    <div>
+                        <strong style="color: var(--ir-blue); font-size: 1.05rem;" th:text="${reservation.journeyDate}">2026-11-20</strong>
+                    </div>
+                </div>
+
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Booking Status</span>
+                    <div>
+                        <span th:if="${reservation.bookingStatus.name() == 'CONFIRMED'}" class="ir-badge ir-badge-confirmed">
+                            CONFIRMED
+                        </span>
+                        <span th:if="${reservation.bookingStatus.name() == 'CANCELLED'}" class="ir-badge ir-badge-cancelled">
+                            CANCELLED
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passenger Berths Table -->
+        <div style="margin-bottom: 1.5rem;">
+            <div style="font-weight: 700; color: var(--ir-navy); margin-bottom: 0.5rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                Passenger Allocation &amp; Berth Details
+            </div>
+            <div class="ir-table-responsive" style="border: 1px solid var(--ir-border); border-radius: 6px; overflow: hidden;">
+                <table class="ir-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Passenger Name</th>
+                            <th>Age</th>
+                            <th>Gender</th>
+                            <th>Coach</th>
+                            <th>Berth No.</th>
+                            <th>Berth Type</th>
+                            <th>ID Type</th>
+                            <th style="text-align: right;">Fare</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="rp, stat : ${reservation.passengers}">
+                            <td th:text="${stat.count}">1</td>
+                            <td>
+                                <strong th:text="${rp.passenger != null ? rp.passenger.fullName : 'Passenger #' + rp.passengerId}">Shiv Shankar Mal</strong>
+                                <span th:if="${rp.passenger != null && rp.passenger.isSeniorCitizen()}" class="ir-badge ir-badge-rajdhani" style="font-size: 0.65rem;">Senior</span>
+                            </td>
+                            <td th:text="${rp.passenger != null ? rp.passenger.age : '--'}">21</td>
+                            <td th:text="${rp.passenger != null ? rp.passenger.gender : '--'}">MALE</td>
+                            <td>
+                                <strong style="color: var(--ir-navy);" th:text="${rp.coachNumber}">B2</strong>
+                            </td>
+                            <td>
+                                <strong style="color: var(--ir-blue); font-size: 1.05rem;" th:text="${rp.berthNumber}">21</strong>
+                            </td>
+                            <td th:text="${rp.berthType}">Lower Berth (LB)</td>
+                            <td th:text="${rp.passenger != null && rp.passenger.idProofType != null ? rp.passenger.idProofType.label : 'Aadhaar Card'}">Aadhaar Card</td>
+                            <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(rp.fareCharged, 1, 2)}">₹2,269.31</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Fare Receipt Table -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div>
+                <div style="font-weight: 700; color: var(--ir-navy); margin-bottom: 0.5rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Important Travel Guidelines
+                </div>
+                <ul style="font-size: 0.8rem; color: #475569; line-height: 1.6; padding-left: 1.25rem;">
+                    <li>One of the passengers on this ticket must carry an original government-issued photo identity card during the journey.</li>
+                    <li>Preserve this Electronic Reservation Slip (ERS) in digital or printed format for verification by the Ticket Checking Staff (TTE).</li>
+                    <li>Cancellations are subject to Indian Railways refund rules: 15% cancellation fee applies with 85% automatic refund.</li>
+                    <li>Fully offline system verified against local SQLite database (Zero external API dependencies).</li>
+                </ul>
+            </div>
+
+            <div>
+                <div style="font-weight: 700; color: var(--ir-navy); margin-bottom: 0.5rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Payment &amp; Fare Receipt
+                </div>
+                <div style="border: 1px solid var(--ir-border); border-radius: 6px; overflow: hidden;">
+                    <table class="ir-table" style="font-size: 0.825rem;">
+                        <tbody>
+                            <tr>
+                                <td>Base Travel Fare:</td>
+                                <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(reservation.baseFare, 1, 2)}">₹3,960.00</td>
+                            </tr>
+                            <tr th:if="${reservation.seniorDiscount > 0}" style="color: #065f46; background: #ecfdf5;">
+                                <td>Senior Citizen Concession (40% Off):</td>
+                                <td style="text-align: right;" th:text="'-₹' + ${#numbers.formatDecimal(reservation.seniorDiscount, 1, 2)}">-₹792.00</td>
+                            </tr>
+                            <tr>
+                                <td>IRCTC Reservation Charge:</td>
+                                <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(reservation.reservationCharge, 1, 2)}">₹80.00</td>
+                            </tr>
+                            <tr th:if="${reservation.superfastCharge > 0}">
+                                <td>Superfast Charge:</td>
+                                <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(reservation.superfastCharge, 1, 2)}">₹90.00</td>
+                            </tr>
+                            <tr th:if="${reservation.cateringCharge > 0}">
+                                <td>Premier Catering (Included):</td>
+                                <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(reservation.cateringCharge, 1, 2)}">₹560.00</td>
+                            </tr>
+                            <tr th:if="${reservation.gstAmount > 0}">
+                                <td>GST (5% on AC Accommodation):</td>
+                                <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(reservation.gstAmount, 1, 2)}">₹166.90</td>
+                            </tr>
+                            <tr style="background: #f1f5f9; font-weight: 800; font-size: 1rem;">
+                                <td style="color: var(--ir-navy);">Total Fare Paid:</td>
+                                <td style="text-align: right; color: var(--ir-blue);" th:text="'₹' + ${#numbers.formatDecimal(reservation.totalFare, 1, 2)}">₹4,064.90</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket Footer Notice -->
+        <div style="border-top: 1px dashed var(--ir-border); padding-top: 1rem; text-align: center; font-size: 0.75rem; color: var(--ir-text-muted);">
+            This ticket is an authentic electronic document generated by the Group 9 Railway Reservation System (Shiv Shankar Mal, Roll: 27600124048).
+            <br>CRIS / Indian Railways Offline Terminal &bull; Verified Database Store
+        </div>
+
+    </div>
+
+</section>
+</body>
+</html>

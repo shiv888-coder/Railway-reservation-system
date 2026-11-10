@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Booking History — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <!-- Page Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--ir-navy);">Reservation History &amp; Bookings</h1>
+            <p style="color: var(--ir-text-muted); font-size: 0.9rem;">
+                Audit all confirmed and cancelled ticket reservations recorded in the local SQLite database.
+            </p>
+        </div>
+        <div>
+            <a th:href="@{/booking}" class="ir-btn ir-btn-primary">
+                + Book New Ticket
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+        <a th:href="@{/reservations}" class="ir-btn ir-btn-sm"
+           th:classappend="${selectedStatus == null || selectedStatus == '' || selectedStatus == 'ALL'} ? 'ir-btn-navy' : 'ir-btn-outline'">
+            All Bookings
+        </a>
+        <a th:href="@{/reservations(status='CONFIRMED')}" class="ir-btn ir-btn-sm"
+           th:classappend="${selectedStatus == 'CONFIRMED'} ? 'ir-btn-navy' : 'ir-btn-outline'">
+            Confirmed (CNF)
+        </a>
+        <a th:href="@{/reservations(status='CANCELLED')}" class="ir-btn ir-btn-sm"
+           th:classappend="${selectedStatus == 'CANCELLED'} ? 'ir-btn-navy' : 'ir-btn-outline'">
+            Cancelled (CAN)
+        </a>
+    </div>
+
+    <!-- Reservations Table Card -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>Recorded Tickets</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);"
+                  th:text="${reservations.size()} + ' reservations shown'"></span>
+        </div>
+        <div class="ir-card-body ir-table-responsive" style="padding: 0;">
+            <div th:if="${reservations.isEmpty()}" style="padding: 3rem 1.5rem; text-align: center; color: var(--ir-text-muted);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📜</div>
+                <h3 style="font-size: 1.2rem; color: var(--ir-navy); margin-bottom: 0.25rem;">No Reservations Found</h3>
+                <p style="font-size: 0.875rem; margin-bottom: 1rem;">
+                    You haven't booked any tickets yet under this filter.
+                </p>
+                <a th:href="@{/booking}" class="ir-btn ir-btn-primary ir-btn-sm">Book Your First Ticket Now</a>
+            </div>
+
+            <table th:if="${!reservations.isEmpty()}" class="ir-table">
+                <thead>
+                    <tr>
+                        <th>PNR Number</th>
+                        <th>Train No.</th>
+                        <th>Journey Route</th>
+                        <th>Travel Date</th>
+                        <th>Class</th>
+                        <th>Pax</th>
+                        <th>Total Fare</th>
+                        <th>Status</th>
+                        <th>Booked At</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="res : ${reservations}">
+                        <td>
+                            <a th:href="@{'/reservations/' + ${res.pnr}}" style="font-weight: 800; color: var(--ir-blue); text-decoration: none; font-size: 0.95rem;"
+                               th:text="${res.pnr}">2849182374</a>
+                        </td>
+                        <td>
+                            <strong th:text="${res.trainNumber}">12301</strong>
+                        </td>
+                        <td>
+                            <span th:text="${res.sourceStationCode}">HWH</span> &rarr;
+                            <span th:text="${res.destinationStationCode}">NDLS</span>
+                        </td>
+                        <td th:text="${res.journeyDate}">2026-11-20</td>
+                        <td>
+                            <span class="ir-badge ir-badge-superfast" th:text="${res.coachClass.code}">3A</span>
+                        </td>
+                        <td th:text="${res.passengers != null ? res.passengers.size() : 1}">2</td>
+                        <td>
+                            <strong th:text="'₹' + ${#numbers.formatDecimal(res.totalFare, 1, 2)}">₹4,538.63</strong>
+                        </td>
+                        <td>
+                            <span th:if="${res.bookingStatus.name() == 'CONFIRMED'}" class="ir-badge ir-badge-confirmed">CONFIRMED</span>
+                            <span th:if="${res.bookingStatus.name() == 'CANCELLED'}" class="ir-badge ir-badge-cancelled">CANCELLED</span>
+                        </td>
+                        <td style="font-size: 0.775rem; color: var(--ir-text-muted);" th:text="${res.bookedAt}">2026-11-10 10:30</td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a th:href="@{'/reservations/' + ${res.pnr}}" class="ir-btn ir-btn-outline ir-btn-sm" style="margin-right: 0.35rem;">
+                                🖨️ Ticket
+                            </a>
+                            <a th:if="${res.bookingStatus.name() == 'CONFIRMED'}"
+                               th:href="@{'/cancellation?pnr=' + ${res.pnr}}"
+                               class="ir-btn ir-btn-danger ir-btn-sm">
+                                Cancel
+                            </a>
+                            <a th:if="${res.bookingStatus.name() == 'CANCELLED'}"
+                               th:href="@{'/cancellations/' + ${res.pnr}}"
+                               class="ir-btn ir-btn-outline ir-btn-sm">
+                                Voucher
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

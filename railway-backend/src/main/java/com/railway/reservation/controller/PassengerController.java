@@ -1,20 +1,23 @@
 package com.railway.reservation.controller;
 
-import com.railway.reservation.dto.PassengerDto;
-import com.railway.reservation.entity.PassengerEntity;
+import com.railway.reservation.enums.Gender;
+import com.railway.reservation.enums.IdProofType;
+import com.railway.reservation.model.Passenger;
 import com.railway.reservation.service.PassengerService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * REST Controller for Passenger Profile Directory CRUD management.
+ * Controller for Passenger Management, Demographic Policies, and Traveler Directory.
  */
-@RestController
-@RequestMapping("/api/passengers")
+@Controller
+@RequestMapping("/passengers")
 public class PassengerController {
 
     private final PassengerService passengerService;
@@ -23,54 +26,30 @@ public class PassengerController {
         this.passengerService = passengerService;
     }
 
-    /**
-     * GET /api/passengers
-     * Retrieves all saved passenger profiles.
-     */
     @GetMapping
-    public ResponseEntity<List<PassengerEntity>> getAllPassengers() {
-        List<PassengerEntity> passengers = passengerService.getAllPassengers();
-        return ResponseEntity.ok(passengers);
-    }
+    public String showPassengerManagement(
+            @RequestParam(required = false) String search,
+            Model model) {
 
-    /**
-     * GET /api/passengers/{id}
-     * Retrieves an individual passenger profile by ID.
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<PassengerEntity> getPassengerById(@PathVariable("id") Long id) {
-        PassengerEntity passenger = passengerService.getPassengerById(id);
-        return ResponseEntity.ok(passenger);
-    }
+        List<Passenger> passengers = passengerService.getAllPassengers();
+        if (search != null && !search.trim().isEmpty()) {
+            String q = search.trim().toLowerCase();
+            passengers = passengers.stream()
+                    .filter(p -> (p.getFullName() != null && p.getFullName().toLowerCase().contains(q)) ||
+                                 (p.getPhone() != null && p.getPhone().contains(q)) ||
+                                 (p.getIdProofNumber() != null && p.getIdProofNumber().toLowerCase().contains(q)))
+                    .collect(Collectors.toList());
+        }
 
-    /**
-     * POST /api/passengers
-     * Creates and saves a new passenger profile.
-     */
-    @PostMapping
-    public ResponseEntity<PassengerEntity> createPassenger(@Valid @RequestBody PassengerDto passengerDto) {
-        PassengerEntity created = passengerService.createPassenger(passengerDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
+        long seniorCount = passengers.stream().filter(Passenger::isSeniorCitizen).count();
 
-    /**
-     * PUT /api/passengers/{id}
-     * Updates an existing passenger profile.
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<PassengerEntity> updatePassenger(@PathVariable("id") Long id,
-                                                           @Valid @RequestBody PassengerDto passengerDto) {
-        PassengerEntity updated = passengerService.updatePassenger(id, passengerDto);
-        return ResponseEntity.ok(updated);
-    }
+        model.addAttribute("passengers", passengers);
+        model.addAttribute("totalPassengers", passengers.size());
+        model.addAttribute("seniorCount", seniorCount);
+        model.addAttribute("searchQuery", search);
+        model.addAttribute("idProofTypes", IdProofType.values());
+        model.addAttribute("genders", Gender.values());
 
-    /**
-     * DELETE /api/passengers/{id}
-     * Removes a passenger profile from the directory.
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePassenger(@PathVariable("id") Long id) {
-        passengerService.deletePassenger(id);
-        return ResponseEntity.noContent().build();
+        return "passengers/list";
     }
 }

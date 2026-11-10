@@ -42,6 +42,8 @@ export class TicketReservation {
     refundReferenceId: string;
   };
   private _isDemo: boolean;
+  private _isDemoRoute: boolean;
+  private _routeSourceType: 'OFFICIAL' | 'SIMULATED';
 
   constructor(data: ReservationData) {
     this._bookingId = data.bookingId;
@@ -65,6 +67,8 @@ export class TicketReservation {
     this._bookedAt = data.bookedAt || new Date().toISOString();
     this._cancellationDetails = data.cancellationDetails;
     this._isDemo = data.isDemo ?? false;
+    this._isDemoRoute = Boolean(data.isDemoRoute || data.routeSourceType === 'SIMULATED' || data.trainNumber.startsWith('DEMO-'));
+    this._routeSourceType = data.routeSourceType || (this._isDemoRoute ? 'SIMULATED' : 'OFFICIAL');
   }
 
   // Getters
@@ -87,6 +91,8 @@ export class TicketReservation {
   public get bookedAt(): string { return this._bookedAt; }
   public get cancellationDetails() { return this._cancellationDetails; }
   public get isDemo(): boolean { return this._isDemo; }
+  public get isDemoRoute(): boolean { return this._isDemoRoute; }
+  public get routeSourceType(): 'OFFICIAL' | 'SIMULATED' { return this._routeSourceType; }
 
   /**
    * Helper: Formats 10-digit PNR into standard 3-7 layout (e.g., 284-9182374)
@@ -123,7 +129,6 @@ export class TicketReservation {
       reason: slip.reason,
       refundReferenceId: slip.refundReferenceId,
     };
-
     return slip;
   }
 
@@ -151,6 +156,8 @@ export class TicketReservation {
       bookedAt: this._bookedAt,
       cancellationDetails: this._cancellationDetails,
       isDemo: this._isDemo,
+      isDemoRoute: this._isDemoRoute,
+      routeSourceType: this._routeSourceType,
     };
   }
 }

@@ -15,43 +15,51 @@
 
 ---
 
-## 🚆 System Highlights
+## 🚆 System Highlights & Offline Desktop Architecture
 
-1. **Expanded Authentic Indian Railway Datasets:**
-   - **120 Verified Stations** covering all **18 Railway Zones** (NR, CR, WR, ER, SR, SWR, ECR, NCR, SCR, SECR, NFR, NWR, WCR, SER, ECoR, KR, NER) including Naihati Junction (NH), Rampurhat Junction (RPH), and major national junctions.
-   - **24 Premier Trains** with official route halts, arrival/departure schedules, distances, and run days across:
-     - 👑 **Rajdhani Express** (e.g. 12301 Howrah, 12952 Mumbai)
-     - ⚡ **Vande Bharat Express** (e.g. 22436 Varanasi, 20608 Chennai-Mysuru)
-     - 🚄 **Shatabdi Express** (e.g. 12002 Bhopal, 12004 Lucknow)
-     - 🚀 **Duronto Express** (e.g. 12260 Sealdah-Bikaner, 12213 Delhi-Yesvantpur)
-     - 💰 **Garib Rath Express** (e.g. 12909 Bandra-Nizamuddin)
-     - 🚆 **Superfast & Mail Express** (e.g. 12810 Howrah Mail, 12622 Tamil Nadu SF)
+1. **100% Offline Standalone Architecture:**
+   - **Java 21 LTS** as the core programming language.
+   - **Java Swing** with FlatLaf modern desktop UI.
+   - **Embedded SQLite Database (`railway.db`)** via JDBC.
+   - **Zero external APIs, zero internet dependencies, and zero database server installation required.**
 
-2. **Train & Station Directory:**
-   - Dedicated directory navigation (`Compass` icon in sidebar).
-   - Searchable Station Directory with Station Code, City, State, Zone, and direct "Departures / Arrivals" route actions.
-   - Premier Fleet Explorer with category filtering, full halt timetables, distance, and run frequency.
+2. **Normalized SQLite Database Schema (11 Relational Tables):**
+   - `stations`: 367 authentic Indian Railway stations across all 18 zones with codes, names, cities, states, and railway zones.
+   - `trains`: 38 verified passenger trains with categories, source/destination, operating days, and distances.
+   - `train_routes`: Sequence-ordered intermediate station halts and cumulative distances.
+   - `train_schedules`: Timetable arrival, departure, halt durations, and day numbers.
+   - `train_classes`: Class availability and base fare tariffs for 1A, 2A, 3A, SL, CC, EC, and 2S.
+   - `seat_inventory`: Quota allocation and real-time available seat inventory with `CHECK (available_seats >= 0)`.
+   - `passengers`: Traveler profiles with identity proofs, age, and senior citizen validation.
+   - `reservations`: Master booking ledger with authentic 10-digit unique PNRs, booking status, and itemized tariffs.
+   - `reservation_passengers`: Multiple passenger seat/berth and coach allocations linked by PNR.
+   - `cancellations`: Cancellation audit slips with cancellation fee deduction, refund calculation, and refund reference IDs.
+   - `admin_users`: Local administrative accounts with SHA-256 hashed credentials.
+   - `dataset_metadata`: Migration and version tracking (`v2.0.0`) to prevent duplicate imports on restarts.
 
-3. **Smart Train Search & Booking:**
-   - Real-time station autocomplete with station codes and cities.
-   - Route path validation (prevents selecting identical origin/destination).
-   - Filter by journey date, coach class (1A, 2A, 3A, SL, CC, EC), and train categories.
-   - Interactive seat selection, passenger profile management, senior citizen concessions, and itemized fare breakdowns (GST, reservation fee, catering, superfast supplement).
-   - Cancellation slip generation with automated refund calculation.
+3. **Bundled Authentic Indian Railways Datasets (CSV):**
+   - Stored locally in `src/main/resources/data/`:
+     - `stations.csv`: 367 verified stations.
+     - `trains.csv`: 38 verified authentic trains (Rajdhani, Vande Bharat, Shatabdi, Duronto, Garib Rath, Superfast, Mail/Express).
+     - `train_routes.csv`: 254 route halts and cumulative kilometer markers.
+     - `train_schedules.csv`: 254 halt timings.
+     - `train_classes.csv`: 234 class tariffs.
+     - `seat_inventory.csv`: 234 initial class seat quotas.
+     - `admin_users.csv`: Initial administrator credentials.
+   - **Source Attribution:** National Train Enquiry System (NTES) & Open Government Data (OGD) Platform India under Government Open Data License (GODL) / NDSAP. Update Date: November 2026.
 
-4. **Live Telemetry & Data Transparency Badges:**
-   - Server-side proxy (`server.ts`) protects sensitive credentials (`RAILWAY_API_KEY` is never sent to the browser).
-   - **60-Second In-Memory Caching** prevents API quota depletion; supports manual forced refresh (`?refresh=true`).
-   - Clear status demarcation:
-     - 🟢 **LIVE DATA:** GPS running status directly verified from live API.
-     - 🔵 **SCHEDULE DATA:** Official published timetable schedules.
-     - 🟡 **DEMO DATA:** Academic demonstration simulation.
-     - ⚪ **LIVE STATUS UNAVAILABLE:** Diagnostic status with error code when no live API is configured.
+4. **Data Integrity & Transactional Safeguards:**
+   - **Prepared Statements** used across all JDBC queries to prevent SQL injection.
+   - **ACID Transactions** (`conn.setAutoCommit(false)`, `commit()`, `rollback()`) for multi-passenger bookings and ticket cancellations.
+   - **Atomic Seat Management:** Atomic decrement prevents negative seat availability; automatic seat restoration on cancellation.
+   - **Data Persistence:** SQLite file preserves all bookings and cancellations across application restarts.
 
-5. **Java OOP Architectural Blueprint:**
-   - Complete Spring Boot 3.2.4 backend in `railway-backend/`.
-   - Demonstrates **Abstraction**, **Inheritance** (`BaseTrainEntity` -> subclasses), **Polymorphism** (`calculateFare()`), and **Encapsulation**.
-   - Interactive OOP architecture viewer in the web UI.
+5. **Java OOP Architectural Principles Demonstrated:**
+   - **Abstraction:** `abstract class Train` with abstract `calculateFare(CoachClass, double distance)`.
+   - **Inheritance:** Concrete subclasses `RajdhaniTrain`, `VandeBharatTrain`, `SuperfastTrain`, `MailExpressTrain`.
+   - **Polymorphism:** Subclass-specific dynamic fare calculation algorithms.
+   - **Encapsulation:** Strongly typed domain models with validated state transitions and getters/setters.
+   - **Exception Handling:** Domain-specific exceptions (`DatabaseException`, `InsufficientSeatsException`, `ResourceNotFoundException`).
 
 ---
 

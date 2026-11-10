@@ -1,313 +1,137 @@
 package com.railway.reservation.service.impl;
 
-import com.railway.reservation.dto.BookingRequestDto;
-import com.railway.reservation.dto.FareBreakdownDto;
-import com.railway.reservation.dto.PassengerDto;
-import com.railway.reservation.entity.*;
+import com.railway.reservation.dao.ReservationDAO;
+import com.railway.reservation.dto.BookingRequest;
+import com.railway.reservation.dto.BookingResult;
+import com.railway.reservation.dto.FareBreakdown;
 import com.railway.reservation.enums.BookingStatus;
-import com.railway.reservation.enums.CoachClass;
 import com.railway.reservation.exception.InsufficientSeatsException;
-import com.railway.reservation.exception.InvalidBookingException;
-import com.railway.reservation.exception.ResourceNotFoundException;
-import com.railway.reservation.repository.*;
-import com.railway.reservation.service.BookingService;
-import com.railway.reservation.service.FareCalculationService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.railway.reservation.exception.InvalidJourneyException;
+import com.railway.reservation.model.Passenger;
+import com.railway.reservation.model.Reservation;
+import com.railway.reservation.model.Train;
+import com.railway.reservation.service.*;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Concrete implementation of BookingService.
- *
- * OOP CONCEPTS DEMONSTRATED:
- * 1. Encapsulation:
- *    - All database repositories and domain collaborators are private final fields.
- *    - Validates business constraints before initiating state transitions.
- *
- * 2. Abstraction & Interface-Based Programming:
- *    - Implements BookingService contract.
- *    - Injects FareCalculationService interface rather than concrete class.
- *
- * 3. Polymorphism:
- *    - Relies on BaseTrainEntity polymorphic hierarchy to calculate accurate fares.
- *
- * 4. Concurrency Control:
- *    - Utilizes @Version optimistic locking on TrainSeatEntity to prevent race
- *      conditions when multiple users attempt to reserve the last available seats.
+ * Service implementation for Ticket Booking.
+ * Orchestrates validation, tariff computation, berth assignment, and transactional persistence.
  */
-@Service
 public class BookingServiceImpl implements BookingService {
 
-    private final TrainRepository trainRepository;
-    private final TrainSeatRepository trainSeatRepository;
-    private final PassengerRepository passengerRepository;
-    private final ReservationRepository reservationRepository;
-    private final SeatAllocationRepository seatAllocationRepository;
-    private final CancellationSlipRepository cancellationSlipRepository;
+    private final TrainSearchService trainSearchService;
+    private final SeatAvailabilityService seatAvailabilityService;
     private final FareCalculationService fareCalculationService;
+    private final PassengerService passengerService;
+    private final ReservationDAO reservationDAO;
 
-    private static final SecureRandom RANDOM = new SecureRandom();
+    public BookingServiceImpl() {
+        this(new TrainSearchServiceImpl(), new SeatAvailabilityServiceImpl(),
+             new FareCalculationServiceImpl(), new PassengerServiceImpl(), new ReservationDAO());
+    }
 
-    /**
-     * Parameterized Constructor Injection
-     */
-    public BookingServiceImpl(TrainRepository trainRepository,
-                              TrainSeatRepository trainSeatRepository,
-                              PassengerRepository passengerRepository,
-                              ReservationRepository reservationRepository,
-                              SeatAllocationRepository seatAllocationRepository,
-                              CancellationSlipRepository cancellationSlipRepository,
-                              FareCalculationService fareCalculationService) {
-        this.trainRepository = trainRepository;
-        this.trainSeatRepository = trainSeatRepository;
-        this.passengerRepository = passengerRepository;
-        this.reservationRepository = reservationRepository;
-        this.seatAllocationRepository = seatAllocationRepository;
-        this.cancellationSlipRepository = cancellationSlipRepository;
+    public BookingServiceImpl(TrainSearchService trainSearchService,
+                              SeatAvailabilityService seatAvailabilityService,
+                              FareCalculationService fareCalculationService,
+                              PassengerService passengerService,
+                              ReservationDAO reservationDAO) {
+        this.trainSearchService = trainSearchService;
+        this.seatAvailabilityService = seatAvailabilityService;
         this.fareCalculationService = fareCalculationService;
-    }
-
-    /**
-     * Transactional Ticket Booking Operation.
-     * Any failure or runtime exception automatically rolls back database transactions.
-     */
-    @Override
-    @Transactional
-    public ReservationEntity bookTicket(BookingRequestDto request) {
-        // Step 1: Validate Passenger Manifest and Journey Date
-        validateBookingRequest(request);
-
-        // Step 2: Retrieve Train Entity
-        BaseTrainEntity train = trainRepository.findByTrainNumber(request.getTrainNumber().trim())
-                .orElseThrow(() -> new ResourceNotFoundException("Train", "trainNumber", request.getTrainNumber()));
-
-        // Step 3: Check Seat Availability & Concurrency Inventory Lock
-        TrainSeatEntity seatInventory = trainSeatRepository.findByTrain_TrainNumberAndCoachClass(
-                train.getTrainNumber(), request.getTravelClass())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Seat Configuration for class " + request.getTravelClass() + " on Train",
-                        "trainNumber", train.getTrainNumber()));
-
-        int requestedSeats = request.getPassengers().size();
-        if (seatInventory.getAvailableSeats() < requestedSeats) {
-            throw new InsufficientSeatsException(
-                    train.getTrainNumber(),
-                    request.getTravelClass().getCode(),
-                    requestedSeats,
-                    seatInventory.getAvailableSeats()
-            );
-        }
-
-        // Step 4: Calculate Fares using Polymorphic FareCalculationService
-        int seniorCount = (int) request.getPassengers().stream()
-                .filter(PassengerDto::isSeniorCitizen)
-                .count();
-
-        FareBreakdownDto fare = fareCalculationService.calculateFareBreakdown(
-                train,
-                request.getTravelClass(),
-                requestedSeats,
-                seniorCount
-        );
-
-        // Step 5: Safely Decrement Available Seats
-        // The @Version field on TrainSeatEntity guarantees optimistic locking protection
-        seatInventory.setAvailableSeats(seatInventory.getAvailableSeats() - requestedSeats);
-        trainSeatRepository.save(seatInventory);
-
-        // Step 6: Generate Unique 10-Digit PNR
-        String pnr = generateUniquePnr();
-
-        // Step 7: Construct Reservation Master Record
-        ReservationEntity reservation = new ReservationEntity(
-                pnr,
-                train,
-                train.getSourceStation(),
-                train.getDestinationStation(),
-                request.getJourneyDate(),
-                request.getTravelClass(),
-                fare.getBaseFare(),
-                fare.getReservationCharge(),
-                fare.getSuperfastCharge(),
-                fare.getCateringCharge(),
-                fare.getGstAmount(),
-                fare.getSeniorDiscount(),
-                fare.getTotalFare()
-        );
-
-        // Step 8: Persist Passengers & Assign Physical Coach / Berths
-        String coachCode = getCoachPrefix(request.getTravelClass());
-        int startBerthNumber = RANDOM.nextInt(35) + 1;
-        String[] standardBerths = {"Lower Berth", "Middle Berth", "Upper Berth", "Side Lower", "Side Upper"};
-
-        for (int i = 0; i < requestedSeats; i++) {
-            PassengerDto pDto = request.getPassengers().get(i);
-
-            // Save or find passenger profile in repository
-            PassengerEntity passenger = passengerRepository.findByPhone(pDto.getPhone().trim())
-                    .orElseGet(() -> passengerRepository.save(new PassengerEntity(
-                            pDto.getFullName(),
-                            pDto.getAge(),
-                            pDto.getGender(),
-                            pDto.getPhone(),
-                            pDto.getEmail(),
-                            pDto.getIdProofType(),
-                            pDto.getIdProofNumber()
-                    )));
-
-            int assignedBerthNum = startBerthNumber + i;
-            String assignedBerthType;
-            if (request.getTravelClass() == CoachClass.CHAIR_CAR || request.getTravelClass() == CoachClass.EXECUTIVE_CHAIR) {
-                assignedBerthType = (i % 2 == 0) ? "Window Chair" : "Aisle Chair";
-            } else {
-                assignedBerthType = standardBerths[i % standardBerths.length];
-            }
-
-            SeatAllocationEntity allocation = new SeatAllocationEntity(
-                    reservation,
-                    passenger,
-                    coachCode,
-                    assignedBerthNum,
-                    assignedBerthType
-            );
-
-            reservation.addSeatAllocation(allocation);
-        }
-
-        // Step 9: Save Reservation (Cascades to Seat Allocations)
-        return reservationRepository.save(reservation);
+        this.passengerService = passengerService;
+        this.reservationDAO = reservationDAO;
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public ReservationEntity getReservationByPnr(String pnr) {
-        if (pnr == null || pnr.trim().isEmpty()) {
-            throw new IllegalArgumentException("PNR cannot be null or empty.");
-        }
-
-        String cleanPnr = pnr.replace("-", "").trim();
-        return reservationRepository.findByPnr(cleanPnr)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation", "PNR", pnr));
-    }
-
-    /**
-     * Transactional Ticket Cancellation Operation.
-     * Computes refund, records cancellation voucher, marks status as CANCELLED,
-     * and replenishes train seat inventory.
-     */
-    @Override
-    @Transactional
-    public CancellationSlipEntity cancelReservation(String pnr, String reason) {
-        ReservationEntity reservation = getReservationByPnr(pnr);
-
-        if (reservation.isCancelled()) {
-            throw new InvalidBookingException("Reservation with PNR " + pnr + " is already cancelled.");
-        }
-
-        // Calculate Cancellation Penalty according to Railway time slabs (demo rules)
-        BigDecimal totalFare = reservation.getTotalFare();
-        BigDecimal minFee = BigDecimal.valueOf(120.00);
-        BigDecimal feeRate = totalFare.multiply(BigDecimal.valueOf(0.15));
-        BigDecimal cancellationFee = feeRate.max(minFee).min(totalFare).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal refundAmount = totalFare.subtract(cancellationFee).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
-
-        // Create Cancellation Slip Voucher
-        String cancelReason = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Passenger requested cancellation";
-        CancellationSlipEntity slip = new CancellationSlipEntity(
-                reservation,
-                cancellationFee,
-                refundAmount,
-                cancelReason
-        );
-
-        reservation.setBookingStatus(BookingStatus.CANCELLED);
-        reservation.setCancellationSlip(slip);
-        cancellationSlipRepository.save(slip);
-        reservationRepository.save(reservation);
-
-        // Replenish Seat Inventory in TrainSeatEntity
-        trainSeatRepository.findByTrain_TrainNumberAndCoachClass(
-                reservation.getTrain().getTrainNumber(), reservation.getTravelClass())
-                .ifPresent(seatInventory -> {
-                    int releasedCount = reservation.getSeatAllocations().size();
-                    int newAvailable = Math.min(seatInventory.getTotalSeats(), seatInventory.getAvailableSeats() + releasedCount);
-                    seatInventory.setAvailableSeats(newAvailable);
-                    trainSeatRepository.save(seatInventory);
-                });
-
-        return slip;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReservationEntity> getAllReservations() {
-        return reservationRepository.findAllByOrderByBookedAtDesc();
-    }
-
-    // =========================================================================
-    // PRIVATE HELPER METHODS
-    // =========================================================================
-
-    private void validateBookingRequest(BookingRequestDto request) {
+    public BookingResult bookTicket(BookingRequest request) {
         if (request == null) {
-            throw new InvalidBookingException("Booking request payload cannot be null.");
-        }
-        if (request.getTrainNumber() == null || request.getTrainNumber().trim().isEmpty()) {
-            throw new InvalidBookingException("Train number is required.");
-        }
-        if (request.getJourneyDate() == null) {
-            throw new InvalidBookingException("Journey date is required.");
-        }
-        if (request.getJourneyDate().isBefore(LocalDate.now())) {
-            throw new InvalidBookingException("Journey date cannot be in the past: " + request.getJourneyDate());
-        }
-        if (request.getTravelClass() == null) {
-            throw new InvalidBookingException("Travel class is required.");
-        }
-        if (request.getPassengers() == null || request.getPassengers().isEmpty()) {
-            throw new InvalidBookingException("At least one passenger must be specified.");
-        }
-        if (request.getPassengers().size() > 6) {
-            throw new InvalidBookingException("Maximum 6 passengers allowed per ticket reservation.");
+            throw new IllegalArgumentException("Booking request cannot be null.");
         }
 
-        for (int i = 0; i < request.getPassengers().size(); i++) {
-            PassengerDto p = request.getPassengers().get(i);
-            if (p.getFullName() == null || p.getFullName().trim().length() < 2) {
-                throw new InvalidBookingException("Passenger #" + (i + 1) + " must have a valid full name.");
-            }
-            if (p.getPhone() == null || p.getPhone().trim().length() < 8) {
-                throw new InvalidBookingException("Passenger #" + (i + 1) + " must have a valid phone number.");
-            }
-            if (p.getIdProofNumber() == null || p.getIdProofNumber().trim().isEmpty()) {
-                throw new InvalidBookingException("Passenger #" + (i + 1) + " must provide a valid ID proof number.");
-            }
+        // 1. Validate Journey Date and Stations
+        validateJourneyParameters(request);
+
+        // 2. Validate Train and Intermediate Halts Sequence
+        Train train = trainSearchService.getTrainByNumber(request.getTrainNumber());
+
+        // 3. Validate Passenger Info
+        List<Passenger> passengers = request.getPassengers();
+        passengerService.validatePassengers(passengers);
+
+        // 4. Verify Seat Availability (Prevent Overbooking)
+        int requestedSeats = passengers.size();
+        int availableSeats = seatAvailabilityService.getAvailableSeats(train.getTrainNumber(), request.getCoachClass());
+        if (availableSeats < requestedSeats) {
+            throw new InsufficientSeatsException(train.getTrainNumber(), request.getCoachClass().getCode(), requestedSeats, availableSeats);
         }
+
+        // 5. Calculate Fare Breakdown
+        FareBreakdown fare = fareCalculationService.calculateFare(
+                train.getTrainNumber(),
+                request.getCoachClass(),
+                request.getSourceStationCode(),
+                request.getDestinationStationCode(),
+                passengers
+        );
+
+        // 6. Assemble Reservation Master Entity
+        Reservation reservation = new Reservation();
+        reservation.setTrainNumber(train.getTrainNumber());
+        reservation.setSourceStationCode(request.getSourceStationCode().trim().toUpperCase());
+        reservation.setDestinationStationCode(request.getDestinationStationCode().trim().toUpperCase());
+        reservation.setJourneyDate(request.getJourneyDate().trim());
+        reservation.setCoachClass(request.getCoachClass());
+        reservation.setBookingStatus(BookingStatus.CONFIRMED);
+        reservation.setBaseFare(fare.getBaseFare());
+        reservation.setReservationCharge(fare.getReservationCharge());
+        reservation.setSuperfastCharge(fare.getSuperfastCharge());
+        reservation.setCateringCharge(fare.getCateringCharge());
+        reservation.setGstAmount(fare.getGstAmount());
+        reservation.setSeniorDiscount(fare.getSeniorDiscount());
+        reservation.setTotalFare(fare.getTotalFare());
+
+        // 7. Persist Reservation, Passengers, and Berth Allocations in a Single ACID Transaction
+        Reservation confirmed = reservationDAO.createReservation(reservation, passengers);
+
+        // 8. Return Confirmation Result
+        return new BookingResult(
+                true,
+                "Ticket booked successfully with PNR: " + confirmed.getPnr(),
+                confirmed.getPnr(),
+                confirmed,
+                fare
+        );
     }
 
-    private String generateUniquePnr() {
-        String pnr;
-        do {
-            // Generate random 10-digit number between 2,000,000,000 and 9,999,999,999
-            long num = 2000000000L + (long) (RANDOM.nextDouble() * 7999999999L);
-            pnr = String.valueOf(num);
-        } while (reservationRepository.existsByPnr(pnr));
-        return pnr;
-    }
+    private void validateJourneyParameters(BookingRequest request) {
+        if (request.getSourceStationCode() == null || request.getSourceStationCode().trim().isEmpty()) {
+            throw new InvalidJourneyException("Source station code is required.");
+        }
+        if (request.getDestinationStationCode() == null || request.getDestinationStationCode().trim().isEmpty()) {
+            throw new InvalidJourneyException("Destination station code is required.");
+        }
+        if (request.getSourceStationCode().trim().equalsIgnoreCase(request.getDestinationStationCode().trim())) {
+            throw new InvalidJourneyException("Source and destination stations cannot be identical.");
+        }
+        if (request.getJourneyDate() == null || request.getJourneyDate().trim().isEmpty()) {
+            throw new InvalidJourneyException("Journey date is required.");
+        }
+        if (request.getCoachClass() == null) {
+            throw new InvalidJourneyException("Travel coach class must be selected.");
+        }
 
-    private String getCoachPrefix(CoachClass coachClass) {
-        return switch (coachClass) {
-            case FIRST_AC -> "H1";
-            case SECOND_AC -> "A1";
-            case THIRD_AC -> "B2";
-            case EXECUTIVE_CHAIR -> "E1";
-            case CHAIR_CAR -> "C2";
-            case SLEEPER -> "S3";
-        };
+        // Prevent booking dates in the past
+        try {
+            LocalDate date = LocalDate.parse(request.getJourneyDate().trim(), DateTimeFormatter.ISO_LOCAL_DATE);
+            if (date.isBefore(LocalDate.now())) {
+                throw new InvalidJourneyException("Journey date cannot be in the past: " + request.getJourneyDate());
+            }
+        } catch (Exception e) {
+            if (e instanceof InvalidJourneyException) throw (InvalidJourneyException) e;
+            throw new InvalidJourneyException("Invalid journey date format (expected YYYY-MM-DD): " + request.getJourneyDate());
+        }
     }
 }

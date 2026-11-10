@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Dashboard — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <!-- Hero / Welcome Banner -->
+    <div style="background: linear-gradient(135deg, #0b2545 0%, #1e3a8a 100%); color: white; border-radius: 8px; padding: 1.75rem 2rem; margin-bottom: 1.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span class="ir-badge ir-badge-rajdhani" style="margin-bottom: 0.5rem;">Official Indian Railways Portal</span>
+                <h1 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.35rem;">Welcome to the Railway Reservation System</h1>
+                <p style="color: #cbd5e1; font-size: 0.95rem; max-width: 650px; margin-top: 0.4rem;">
+                    Full-featured browser-based reservation interface powered by Spring Boot, Thymeleaf, and local SQLite. Search trains across 367 authentic Indian Railway stations, inspect schedules, check live tariffs, and book tickets with instant PNR generation.
+                </p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <a th:href="@{/booking}" class="ir-btn" style="background: var(--ir-gold); color: #0b2545; font-weight: 700;">
+                    🎫 Book Ticket
+                </a>
+                <a th:href="@{/pnr-enquiry}" class="ir-btn" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                    🔢 PNR Enquiry
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Row -->
+    <div class="ir-metrics-grid">
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon">🚆</div>
+            <div>
+                <div class="ir-metric-val" th:text="${totalTrains}">38</div>
+                <div class="ir-metric-lbl">Verified Trains</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon">🚉</div>
+            <div>
+                <div class="ir-metric-val" th:text="${totalStations}">367</div>
+                <div class="ir-metric-lbl">Railway Stations</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon">📋</div>
+            <div>
+                <div class="ir-metric-val" th:text="${totalReservations}">0</div>
+                <div class="ir-metric-lbl">Total Bookings</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon">₹</div>
+            <div>
+                <div class="ir-metric-val" th:text="'₹' + ${#numbers.formatDecimal(totalRevenue, 1, 2)}">₹0.00</div>
+                <div class="ir-metric-lbl">System Revenue</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Train Search Widget -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>⚡ Quick Train Search</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);">Instant station corridor lookup</span>
+        </div>
+        <div class="ir-card-body">
+            <form th:action="@{/trains/search}" method="get" class="ir-form-grid">
+                <div class="ir-form-group">
+                    <label class="ir-label">Origin Station</label>
+                    <input type="text" name="source" list="stationOptions" class="ir-input" placeholder="e.g. HWH or Howrah" required>
+                </div>
+                <div class="ir-form-group">
+                    <label class="ir-label">Destination Station</label>
+                    <input type="text" name="destination" list="stationOptions" class="ir-input" placeholder="e.g. NDLS or New Delhi" required>
+                </div>
+                <div class="ir-form-group">
+                    <label class="ir-label">Journey Date</label>
+                    <input type="date" name="journeyDate" class="ir-input" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
+                </div>
+                <div class="ir-form-group" style="justify-content: flex-end;">
+                    <button type="submit" class="ir-btn ir-btn-primary" style="height: 42px;">
+                        🔍 Search Available Trains
+                    </button>
+                </div>
+            </form>
+            <datalist id="stationOptions">
+                <option th:each="s : ${stations}" th:value="${s.stationCode}" th:text="${s.stationName} + ' (' + ${s.city} + ')'"></option>
+            </datalist>
+        </div>
+    </div>
+
+    <!-- Featured Premier Trains (Rajdhani & Vande Bharat Express) -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>⭐ Featured Premier Trains</span>
+            <a th:href="@{/trains/search}" class="ir-btn ir-btn-outline ir-btn-sm">View All Trains &rarr;</a>
+        </div>
+        <div class="ir-card-body ir-table-responsive" style="padding: 0;">
+            <table class="ir-table">
+                <thead>
+                    <tr>
+                        <th>Train No. &amp; Name</th>
+                        <th>Category</th>
+                        <th>Route Corridor</th>
+                        <th>Timings</th>
+                        <th>Duration</th>
+                        <th>Operating Days</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="train : ${featuredTrains}">
+                        <td>
+                            <strong th:text="${train.trainNumber}">12301</strong>
+                            <div th:text="${train.trainName}" style="font-weight: 600; color: var(--ir-navy);">Howrah Rajdhani Express</div>
+                        </td>
+                        <td>
+                            <span th:if="${train.trainType.name() == 'RAJDHANI'}" class="ir-badge ir-badge-rajdhani">Rajdhani</span>
+                            <span th:if="${train.trainType.name() == 'VANDE_BHARAT'}" class="ir-badge ir-badge-vandebharat">Vande Bharat</span>
+                            <span th:if="${train.trainType.name() == 'SUPERFAST'}" class="ir-badge ir-badge-superfast">Superfast</span>
+                            <span th:if="${train.trainType.name() == 'MAIL_EXPRESS'}" class="ir-badge ir-badge-mailexpress">Mail/Express</span>
+                        </td>
+                        <td>
+                            <span th:text="${train.sourceStationCode}">HWH</span> &rarr;
+                            <span th:text="${train.destinationStationCode}">NDLS</span>
+                            <div style="font-size: 0.775rem; color: var(--ir-text-muted);" th:text="${train.distanceKm} + ' km'">1451 km</div>
+                        </td>
+                        <td>
+                            <span th:text="${train.departureTime}">16:50</span> &rarr;
+                            <span th:text="${train.arrivalTime}">10:05</span>
+                        </td>
+                        <td th:text="${train.duration}">17h 15m</td>
+                        <td>
+                            <span th:text="${train.operatingDays}" style="font-size: 0.8rem; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px;">Daily</span>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a th:href="@{'/trains/' + ${train.trainNumber}}" class="ir-btn ir-btn-outline ir-btn-sm" style="margin-right: 0.35rem;">Route</a>
+                            <a th:href="@{'/booking?trainNumber=' + ${train.trainNumber} + '&source=' + ${train.sourceStationCode} + '&destination=' + ${train.destinationStationCode}}"
+                               class="ir-btn ir-btn-primary ir-btn-sm">Book</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Quick Action Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
+        <div class="ir-card" style="margin-bottom: 0;">
+            <div class="ir-card-body">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚉</div>
+                <h3 style="font-size: 1.1rem; color: var(--ir-navy); margin-bottom: 0.25rem;">Station Directory</h3>
+                <p style="font-size: 0.85rem; color: var(--ir-text-muted); margin-bottom: 1rem;">
+                    Browse 367 authentic Indian Railway stations across all 18 railway zones with codes and categories.
+                </p>
+                <a th:href="@{/stations}" class="ir-btn ir-btn-outline ir-btn-sm">Browse Stations &rarr;</a>
+            </div>
+        </div>
+        <div class="ir-card" style="margin-bottom: 0;">
+            <div class="ir-card-body">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💰</div>
+                <h3 style="font-size: 1.1rem; color: var(--ir-navy); margin-bottom: 0.25rem;">Tariff Calculator</h3>
+                <p style="font-size: 0.85rem; color: var(--ir-text-muted); margin-bottom: 1rem;">
+                    Calculate verified fares with 40% senior citizen concession, 5% AC GST, and premier catering breakdown.
+                </p>
+                <a th:href="@{/fare-enquiry}" class="ir-btn ir-btn-outline ir-btn-sm">Calculate Fare &rarr;</a>
+            </div>
+        </div>
+        <div class="ir-card" style="margin-bottom: 0;">
+            <div class="ir-card-body">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">❌</div>
+                <h3 style="font-size: 1.1rem; color: var(--ir-navy); margin-bottom: 0.25rem;">Ticket Cancellation</h3>
+                <p style="font-size: 0.85rem; color: var(--ir-text-muted); margin-bottom: 1rem;">
+                    Process ticket cancellations by PNR with 15% cancellation charge deduction and automatic seat restoration.
+                </p>
+                <a th:href="@{/cancellation}" class="ir-btn ir-btn-outline ir-btn-sm">Cancel Ticket &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

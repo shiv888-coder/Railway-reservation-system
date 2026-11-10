@@ -2,7 +2,6 @@ package com.railway.reservation.enums;
 
 /**
  * Enumeration representing available railway coach accommodation classes.
- *
  * Each class has a standardized code and human-readable description.
  */
 public enum CoachClass {
@@ -11,7 +10,8 @@ public enum CoachClass {
     THIRD_AC("3A", "AC 3-Tier Sleeper"),
     SLEEPER("SL", "Sleeper Class (Non-AC)"),
     CHAIR_CAR("CC", "AC Chair Car"),
-    EXECUTIVE_CHAIR("EC", "Executive Anubhuti Chair Car");
+    EXECUTIVE_CHAIR("EC", "Executive Anubhuti Chair Car"),
+    SECOND_SEATING("2S", "Second Sitting (2S)");
 
     private final String code;
     private final String displayName;
@@ -29,16 +29,14 @@ public enum CoachClass {
         return displayName;
     }
 
-    /**
-     * Resolves a CoachClass from its short code (e.g. "3A" -> THIRD_AC)
-     */
     public static CoachClass fromCode(String code) {
         if (code == null) return null;
+        String trimmed = code.trim();
         for (CoachClass c : CoachClass.values()) {
-            if (c.getCode().equalsIgnoreCase(code.trim()) || c.name().equalsIgnoreCase(code.trim())) {
+            if (c.getCode().equalsIgnoreCase(trimmed) || c.name().equalsIgnoreCase(trimmed)) {
                 return c;
             }
         }
-        throw new IllegalArgumentException("Unknown Coach Class code: " + code);
+        return SLEEPER;
     }
 }

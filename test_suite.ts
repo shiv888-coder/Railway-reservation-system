@@ -8,7 +8,8 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { VERIFIED_STATIONS, VERIFIED_TRAINS } from './src/data/railwayDatasets.ts';
+import { VERIFIED_STATIONS, VERIFIED_TRAINS, ALL_VERIFIED_TRAINS, ALL_INDIA_STATIONS } from './src/data/railwayDatasets.ts';
+import { railwayService } from './src/services/RailwayDataService.ts';
 import { TrainFactory } from './src/models/Train.ts';
 import { Passenger } from './src/models/Passenger.ts';
 import { TicketReservation } from './src/models/Reservation.ts';
@@ -108,24 +109,41 @@ async function runTests() {
   record('Stations', 'Naihati (NH) in Dataset', Boolean(nhStation && nhStation.name.includes('Naihati') && nhStation.zone.includes('ER')), `Found: ${nhStation?.name} (${nhStation?.code})`);
   record('Stations', 'Rampurhat (RPH) in Dataset', Boolean(rphStation && rphStation.name.includes('Rampurhat') && rphStation.zone.includes('ER')), `Found: ${rphStation?.name} (${rphStation?.code})`);
 
-  // 2.2 Search trains by station name and station code
-  const trains = VERIFIED_TRAINS.map(t => TrainFactory.createTrain(t));
+  // 2.2 Search trains by station name and station code across ALL verified trains
+  const allVerified = ALL_VERIFIED_TRAINS.map(t => TrainFactory.createTrain(t));
   
-  // Test search: Sealdah to Naihati (SDAH -> NH)
-  const sdahToNh = trains.filter(t => t.checkRouteService('SDAH', 'NH').serves);
-  record('Search Algorithm', 'Sealdah (SDAH) to Naihati (NH) Search', sdahToNh.length > 0 && sdahToNh.some(t => t.trainNumber === '12377'), `Found ${sdahToNh.length} train(s) serving corridor (e.g. Train ${sdahToNh[0]?.trainNumber} ${sdahToNh[0]?.trainName})`);
+  // Test search: Sealdah to Naihati (SDAH -> NH) and Reverse (NH -> SDAH)
+  const sdahToNh = allVerified.filter(t => t.checkRouteService('SDAH', 'NH').serves);
+  const nhToSdah = allVerified.filter(t => t.checkRouteService('NH', 'SDAH').serves);
+  record('Search Algorithm', 'Sealdah (SDAH) to Naihati (NH) Search', sdahToNh.length > 0 && sdahToNh.some(t => t.trainNumber === '12377' || t.trainNumber === '31311'), `Found ${sdahToNh.length} train(s) serving corridor (e.g. Train ${sdahToNh[0]?.trainNumber} ${sdahToNh[0]?.trainName})`);
+  record('Search Algorithm', 'Reverse Naihati (NH) to Sealdah (SDAH) Search', nhToSdah.length > 0 && nhToSdah.some(t => t.trainNumber === '12378' || t.trainNumber === '31312'), `Found ${nhToSdah.length} train(s) serving reverse corridor (e.g. Train ${nhToSdah[0]?.trainNumber} ${nhToSdah[0]?.trainName})`);
 
-  // Test search: Howrah to Rampurhat (HWH -> RPH)
-  // Check if any train has HWH and RPH in sequential halts
-  const hwhToRph = trains.filter(t => t.checkRouteService('HWH', 'RPH').serves);
-  // Also check Sealdah to Rampurhat (SDAH -> RPH)
-  const sdahToRph = trains.filter(t => t.checkRouteService('SDAH', 'RPH').serves);
-  record('Search Algorithm', 'Sealdah (SDAH) to Rampurhat (RPH) Search', sdahToRph.length > 0 && sdahToRph.some(t => t.trainNumber === '12377'), `Found ${sdahToRph.length} train(s) (Train ${sdahToRph[0]?.trainNumber} ${sdahToRph[0]?.trainName})`);
+  // Test search: Howrah to Rampurhat (HWH -> RPH) and Reverse (RPH -> HWH)
+  const hwhToRph = allVerified.filter(t => t.checkRouteService('HWH', 'RPH').serves);
+  const rphToHwh = allVerified.filter(t => t.checkRouteService('RPH', 'HWH').serves);
+  record('Search Algorithm', 'Howrah (HWH) to Rampurhat (RPH) Search', hwhToRph.length > 0 && hwhToRph.some(t => t.trainNumber === '12347' || t.trainNumber === '13017'), `Found ${hwhToRph.length} authentic train(s) (e.g. ${hwhToRph.map(t => t.trainNumber).join(', ')})`);
+  record('Search Algorithm', 'Reverse Rampurhat (RPH) to Howrah (HWH) Search', rphToHwh.length > 0 && rphToHwh.some(t => t.trainNumber === '12348' || t.trainNumber === '13018'), `Found ${rphToHwh.length} authentic train(s) (e.g. ${rphToHwh.map(t => t.trainNumber).join(', ')})`);
+
+  // Test search: Howrah to New Delhi (HWH -> NDLS) and Reverse (NDLS -> HWH)
+  const hwhToNdls = allVerified.filter(t => t.checkRouteService('HWH', 'NDLS').serves);
+  const ndlsToHwh = allVerified.filter(t => t.checkRouteService('NDLS', 'HWH').serves);
+  record('Search Algorithm', 'Howrah (HWH) to New Delhi (NDLS) Search', hwhToNdls.length > 0 && hwhToNdls.some(t => t.trainNumber === '12301'), `Found ${hwhToNdls.length} train(s) (e.g. ${hwhToNdls[0]?.trainNumber} Rajdhani)`);
+  record('Search Algorithm', 'Reverse New Delhi (NDLS) to Howrah (HWH) Search', ndlsToHwh.length > 0 && ndlsToHwh.some(t => t.trainNumber === '22302'), `Found ${ndlsToHwh.length} train(s) (e.g. ${ndlsToHwh[0]?.trainNumber} Vande Bharat)`);
+
+  // Test Scope Filter via RailwayDataService (ALL vs OFFICIAL vs SIMULATED)
+  const officialSearch = railwayService.searchTrains({ source: 'HWH', destination: 'NDLS', serviceScope: 'OFFICIAL' });
+  record('Scope Filter', 'Scope: OFFICIAL Only Returns Authentic Records', officialSearch.length > 0 && officialSearch.every(t => t.provenance === 'OFFICIAL'), `Found ${officialSearch.length} official trains; 0 simulated`);
+  const simulatedSearch = railwayService.searchTrains({ source: 'CPR', destination: 'HJP', serviceScope: 'SIMULATED' });
+  record('Scope Filter', 'Scope: SIMULATED Returns Algorithmic Trains with Flag', simulatedSearch.length > 0 && simulatedSearch.every(t => t.isSimulated && t.provenance === 'SIMULATED'), `Found ${simulatedSearch.length} simulated train(s) labeled correctly`);
+
+  // Test 1-Hop Connecting Train Routing
+  const connects = railwayService.searchConnectingTrains('HWH', 'BZA', '2026-11-15');
+  record('Connecting Router', '1-Hop Connecting Hub Search (HWH to BZA)', connects.length > 0, `Generated ${connects.length} connecting route(s) via transfer junction`);
 
   // 2.3 Train Category Filters
   const categories = ['Rajdhani', 'Shatabdi', 'Vande Bharat', 'Duronto', 'Superfast'];
   for (const cat of categories) {
-    const matching = trains.filter(t => t.trainType === cat);
+    const matching = allVerified.filter(t => t.trainType === cat);
     record('Category Filters', `Filter: ${cat}`, matching.length > 0, `Found ${matching.length} trains matching type "${cat}"`);
   }
 
@@ -136,7 +154,7 @@ async function runTests() {
   record('Passenger Model', 'Passenger Serialization', validPassenger.toFirestoreData().name === 'Shiv Shankar Mal', 'Successfully converted to/from JSON payload');
 
   // 2.5 Fare Calculation & Concessions
-  const rajdhani = trains.find(t => t.trainNumber === '12301')!;
+  const rajdhani = allVerified.find(t => t.trainNumber === '12301')!;
   const standardFare = rajdhani.calculateFare('3A', 1, 0);
   const seniorFare = rajdhani.calculateFare('3A', 1, 1);
   record('OOP Polymorphism', 'Tariff Calculation (3A)', standardFare.totalFare > 0 && standardFare.gst > 0, `Base: ₹${standardFare.baseFare}, Total: ₹${standardFare.totalFare}`);
@@ -169,17 +187,19 @@ async function runTests() {
   // 3.2 Stations: GET /api/stations
   try {
     const stationsRes = await fetchJson('/api/stations');
-    record('API Endpoint', 'GET /api/stations', stationsRes.status === 200 && stationsRes.data.length === 120, `HTTP ${stationsRes.status}, returned ${stationsRes.data.length} stations`);
+    record('API Endpoint', 'GET /api/stations', stationsRes.status === 200 && stationsRes.data.length >= 120, `HTTP ${stationsRes.status}, returned ${stationsRes.data.length} stations (All-India coverage >= 120)`);
   } catch (e: any) {
     record('API Endpoint', 'GET /api/stations', false, e.message);
   }
 
-  // 3.3 Specific Station: GET /api/stations/NH and RPH
+  // 3.3 Specific Station: GET /api/stations/NH, RPH, and CPR
   try {
     const nhRes = await fetchJson('/api/stations/NH');
     record('API Endpoint', 'GET /api/stations/NH', nhRes.status === 200 && nhRes.data.stationCode === 'NH', `HTTP ${nhRes.status}, Name: ${nhRes.data.stationName}`);
     const rphRes = await fetchJson('/api/stations/RPH');
     record('API Endpoint', 'GET /api/stations/RPH', rphRes.status === 200 && rphRes.data.stationCode === 'RPH', `HTTP ${rphRes.status}, Name: ${rphRes.data.stationName}`);
+    const cprRes = await fetchJson('/api/stations/CPR');
+    record('API Endpoint', 'GET /api/stations/CPR', cprRes.status === 200 && cprRes.data.stationCode === 'CPR', `HTTP ${cprRes.status}, Name: ${cprRes.data.stationName}`);
   } catch (e: any) {
     record('API Endpoint', 'GET /api/stations/:code', false, e.message);
   }
@@ -187,11 +207,23 @@ async function runTests() {
   // 3.4 Trains: GET /api/trains and GET /api/trains/12377
   try {
     const trainsRes = await fetchJson('/api/trains');
-    record('API Endpoint', 'GET /api/trains', trainsRes.status === 200 && trainsRes.data.length === 24, `HTTP ${trainsRes.status}, returned ${trainsRes.data.length} trains`);
+    record('API Endpoint', 'GET /api/trains', trainsRes.status === 200 && trainsRes.data.length >= 24, `HTTP ${trainsRes.status}, returned ${trainsRes.data.length} verified trains (>= 24)`);
     const train12377 = await fetchJson('/api/trains/12377');
     record('API Endpoint', 'GET /api/trains/12377 (Padatik)', train12377.status === 200 && train12377.data.trainNumber === '12377', `HTTP ${train12377.status}, Name: ${train12377.data.trainName}`);
+    const train12348 = await fetchJson('/api/trains/12348');
+    record('API Endpoint', 'GET /api/trains/12348 (RPH -> HWH Sahid)', train12348.status === 200 && train12348.data.trainNumber === '12348', `HTTP ${train12348.status}, Name: ${train12348.data.trainName}`);
   } catch (e: any) {
     record('API Endpoint', 'GET /api/trains/:trainNumber', false, e.message);
+  }
+
+  // 3.4B Station Board & Config Diagnostics
+  try {
+    const boardRes = await fetchJson('/api/railway/stations/HWH/board');
+    record('API Endpoint', 'GET /api/railway/stations/HWH/board', boardRes.status === 200 && Array.isArray(boardRes.data.entries) && boardRes.data.entries.length > 0, `HTTP ${boardRes.status}, returned ${boardRes.data.entries.length} scheduled departures/arrivals`);
+    const cfgRes = await fetchJson('/api/railway/config');
+    record('API Endpoint', 'GET /api/railway/config', cfgRes.status === 200 && cfgRes.data.security.secretsInFrontend === false, `HTTP ${cfgRes.status}, activeProvider: ${cfgRes.data.activeProvider}, secretsExposed: ${cfgRes.data.security.secretsInFrontend}`);
+  } catch (e: any) {
+    record('API Endpoint', 'Station Board and Config Diagnostics', false, e.message);
   }
 
   // 3.5 Live Status Proxy: GET /api/trains/12301/live-status

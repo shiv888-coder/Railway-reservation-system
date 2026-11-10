@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:replace="${title}">Indian Railway Reservation System</title>
+    <link rel="stylesheet" th:href="@{/css/railway-theme.css}">
+</head>
+<body>
+
+    <!-- Top Status Bar -->
+    <div class="ir-top-bar">
+        <div>
+            <span>🇮🇳 Indian Railways (IRCTC / CRIS Standard)</span>
+            <span style="margin: 0 0.5rem; opacity: 0.5;">|</span>
+            <span>B.Tech CSE Project — Group 9</span>
+        </div>
+        <div>
+            <span id="liveClock">Loading system time...</span>
+            <span style="margin: 0 0.5rem; opacity: 0.5;">|</span>
+            <span>Database: <strong>Offline SQLite (JDBC)</strong></span>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <header class="ir-header">
+        <a th:href="@{/dashboard}" class="ir-brand">
+            <div class="ir-logo-badge">IR</div>
+            <div>
+                <div class="ir-brand-title">INDIAN RAILWAYS RESERVATION SYSTEM</div>
+                <div class="ir-brand-subtitle">Government of India • Ministry of Railways • Group 9 B.Tech CSE</div>
+            </div>
+        </a>
+        <div style="text-align: right; font-size: 0.85rem;" class="no-print">
+            <div style="font-weight: 600;">Shiv Shankar Mal</div>
+            <div style="color: #cbd5e1; font-size: 0.775rem;">Roll: 27600124048</div>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="ir-nav no-print">
+        <a th:href="@{/dashboard}">📊 Dashboard</a>
+        <a th:href="@{/trains/search}">🔍 Search Trains</a>
+        <a th:href="@{/stations}">🚉 Stations</a>
+        <a th:href="@{/booking}">🎫 Book Ticket</a>
+        <a th:href="@{/fare-enquiry}">💰 Fare Enquiry</a>
+        <a th:href="@{/pnr-enquiry}">🔢 PNR Status</a>
+        <a th:href="@{/reservations}">📜 Booking History</a>
+        <a th:href="@{/cancellation}">❌ Cancel Ticket</a>
+        <a th:href="@{/passengers}">👥 Passengers</a>
+        <a th:href="@{/admin/dashboard}" style="margin-left: auto; color: var(--ir-gold);">🛡️ Admin Panel</a>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="ir-container">
+
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="ir-alert ir-alert-success no-print">
+            <span>✅</span>
+            <span th:text="${successMessage}">Operation successful!</span>
+        </div>
+        <div th:if="${errorMessage}" class="ir-alert ir-alert-danger no-print">
+            <span>⚠️</span>
+            <span th:text="${errorMessage}">An error occurred.</span>
+        </div>
+        <div th:if="${infoMessage}" class="ir-alert ir-alert-info no-print">
+            <span>ℹ️</span>
+            <span th:text="${infoMessage}">Information notice.</span>
+        </div>
+
+        <!-- Page Specific Body Content -->
+        <div th:replace="${content}">
+            <p>Page content placeholder</p>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="ir-footer no-print">
+        <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2rem;">
+            <div style="max-width: 400px;">
+                <div style="font-weight: 700; color: white; margin-bottom: 0.5rem; font-size: 1rem;">
+                    Indian Railway Reservation System (Web Edition)
+                </div>
+                <p style="margin-bottom: 0.5rem; font-size: 0.8rem; line-height: 1.5;">
+                    Developed by <strong>Shiv Shankar Mal</strong> (Roll No: 27600124048, Group 9) as a complete B.Tech Computer Science &amp; Engineering project.
+                </p>
+                <p style="font-size: 0.775rem; color: #64748b;">
+                    Powered by Java 21, Spring Boot 3, Thymeleaf, and local SQLite with transactional JDBC.
+                </p>
+            </div>
+            <div>
+                <div style="font-weight: 700; color: white; margin-bottom: 0.5rem;">Quick Navigation</div>
+                <ul style="list-style: none; font-size: 0.825rem; line-height: 1.8;">
+                    <li><a th:href="@{/dashboard}">Home Dashboard</a></li>
+                    <li><a th:href="@{/trains/search}">Train Timetable &amp; Search</a></li>
+                    <li><a th:href="@{/stations}">Station Directory (367 Stations)</a></li>
+                    <li><a th:href="@{/booking}">Book Ticket Online</a></li>
+                    <li><a th:href="@{/pnr-enquiry}">10-Digit PNR Status Enquiry</a></li>
+                </ul>
+            </div>
+            <div>
+                <div style="font-weight: 700; color: white; margin-bottom: 0.5rem;">Audit &amp; Compliance</div>
+                <ul style="list-style: none; font-size: 0.825rem; line-height: 1.8;">
+                    <li>✔️ Verified IRCTC Coach &amp; Berth Allocation</li>
+                    <li>✔️ Zero Paid API / 100% Offline Database</li>
+                    <li>✔️ Senior Citizen 40% Base Fare Concession</li>
+                    <li>✔️ 15% Cancellation Fee / 85% Auto Refund</li>
+                    <li><a th:href="@{/admin/dashboard}">Administrator Audit Console</a></li>
+                </ul>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.775rem; color: #64748b;">
+            &copy; 2026 Indian Railway Reservation System | B.Tech CSE Academic Project | Group 9
+        </div>
+    </footer>
+
+    <script>
+        function updateLiveClock() {
+            const el = document.getElementById('liveClock');
+            if (el) {
+                const now = new Date();
+                el.innerText = now.toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    hour12: true
+                }) + ' IST';
+            }
+        }
+        setInterval(updateLiveClock, 1000);
+        updateLiveClock();
+    </script>
+</body>
+</html>

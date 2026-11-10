@@ -1,4 +1,8 @@
-export type CoachClass = '1A' | '2A' | '3A' | 'SL' | 'CC' | 'EC';
+export type CoachClass = '1A' | '2A' | '3A' | 'SL' | 'CC' | 'EC' | '2S';
+
+export type ServiceScope = 'ALL' | 'OFFICIAL' | 'SIMULATED';
+
+export type TrainProvenance = 'OFFICIAL' | 'SIMULATED';
 
 export type BookingStatus = 'CONFIRMED' | 'CANCELLED' | 'WAITLIST';
 
@@ -14,11 +18,47 @@ export interface LiveRunningStatus {
   lastUpdated: string;
   nextHaltName?: string;
   nextHaltDeparture?: string;
+  expectedPlatform?: string;
   sourceType: DataSourceType;
   message?: string;
   apiConfigured?: boolean;
   apiProvider?: string;
   errorCode?: 'MISSING_API_KEY' | 'INVALID_KEY' | 'TIMEOUT' | 'GATEWAY_ERROR' | 'MALFORMED_DATA' | 'NETWORK_ERROR' | 'NO_VERIFIED_PROVIDER';
+}
+
+export interface StationBoardEntry {
+  trainNumber: string;
+  trainName: string;
+  trainType: string;
+  sourceStationCode: string;
+  destinationStationCode: string;
+  scheduledArrival: string;
+  scheduledDeparture: string;
+  platform: string;
+  delayMinutes: number;
+  status: string;
+  isSimulated: boolean;
+}
+
+export interface ConnectingRouteLeg {
+  trainNumber: string;
+  trainName: string;
+  trainType: string;
+  originStationCode: string;
+  destinationStationCode: string;
+  departureTime: string;
+  arrivalTime: string;
+  travelClass: CoachClass;
+}
+
+export interface ConnectingRoute {
+  transferStationCode: string;
+  transferStationName: string;
+  layoverTime: string;
+  totalDuration: string;
+  totalEstimatedFare: number;
+  leg1: ConnectingRouteLeg;
+  leg2: ConnectingRouteLeg;
 }
 
 export type Gender = 'Male' | 'Female' | 'Transgender' | 'Other';
@@ -97,7 +137,12 @@ export type TrainType =
   | 'Mail Express'
   | 'Shatabdi'
   | 'Duronto'
-  | 'Garib Rath';
+  | 'Garib Rath'
+  | 'Passenger'
+  | 'Local'
+  | 'MEMU'
+  | 'DEMU'
+  | 'Humsafar';
 
 export interface ReservationData {
   bookingId: string; // 10-digit PNR
@@ -125,14 +170,17 @@ export interface ReservationData {
     refundReferenceId: string;
   };
   isDemo?: boolean;
+  isDemoRoute?: boolean;
+  routeSourceType?: 'OFFICIAL' | 'SIMULATED';
 }
 
 export interface SearchFilterState {
   source: string;
   destination: string;
-  journeyDate: string;
+  journeyDate?: string;
   travelClass?: CoachClass | 'ALL';
   trainType?: string;
+  serviceScope?: ServiceScope;
 }
 
 export interface DashboardStats {

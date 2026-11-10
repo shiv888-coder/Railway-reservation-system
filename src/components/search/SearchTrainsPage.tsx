@@ -19,7 +19,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { railwayService } from '../../services/RailwayDataService.ts';
-import { CoachClass, LiveRunningStatus, SearchFilterState, StationData } from '../../types/index.ts';
+import { CoachClass, LiveRunningStatus, SearchFilterState, StationData, ServiceScope, ConnectingRoute } from '../../types/index.ts';
 import { BaseTrain } from '../../models/Train.ts';
 import { StationAutocompleteInput } from './StationAutocompleteInput.tsx';
 
@@ -31,24 +31,23 @@ interface SearchTrainsPageProps {
 }
 
 const POPULAR_ROUTES = [
-  { from: 'HWH', to: 'NDLS', label: 'Howrah → New Delhi' },
-  { from: 'NDLS', to: 'HWH', label: 'New Delhi → Howrah' },
-  { from: 'CSMT', to: 'NDLS', label: 'Mumbai → New Delhi' },
-  { from: 'NDLS', to: 'BSB', label: 'New Delhi → Varanasi' },
-  { from: 'NDLS', to: 'LKO', label: 'New Delhi → Lucknow' },
-  { from: 'NDLS', to: 'RKMP', label: 'New Delhi → Bhopal' },
-  { from: 'MAS', to: 'MYS', label: 'Chennai → Mysuru' },
-  { from: 'MAS', to: 'NDLS', label: 'Chennai → New Delhi' },
-  { from: 'HWH', to: 'YPR', label: 'Howrah → Bengaluru' },
-  { from: 'HWH', to: 'NJP', label: 'Howrah → New Jalpaiguri' },
-  { from: 'SDAH', to: 'RPH', label: 'Sealdah → Rampurhat' },
-  { from: 'SDAH', to: 'NH', label: 'Sealdah → Naihati' },
-  { from: 'CSMT', to: 'MAO', label: 'Mumbai → Goa (Madgaon)' },
-  { from: 'CSMT', to: 'ADI', label: 'Mumbai → Ahmedabad' },
-  { from: 'BDTS', to: 'NZM', label: 'Bandra → Nizamuddin' },
-  { from: 'PNBE', to: 'NDLS', label: 'Patna → New Delhi' },
-  { from: 'SBC', to: 'PNBE', label: 'Bengaluru → Patna' },
+  { from: 'HWH', to: 'RPH', label: 'Howrah ↔ Rampurhat' },
+  { from: 'RPH', to: 'HWH', label: 'Rampurhat ↔ Howrah' },
+  { from: 'SDAH', to: 'NH', label: 'Sealdah ↔ Naihati' },
+  { from: 'NH', to: 'SDAH', label: 'Naihati ↔ Sealdah' },
+  { from: 'HWH', to: 'NDLS', label: 'Howrah ↔ New Delhi' },
+  { from: 'NDLS', to: 'HWH', label: 'New Delhi ↔ Howrah' },
+  { from: 'SDAH', to: 'RPH', label: 'Sealdah ↔ Rampurhat' },
+  { from: 'CSMT', to: 'NDLS', label: 'Mumbai ↔ New Delhi' },
+  { from: 'MAS', to: 'MYS', label: 'Chennai ↔ Mysuru' },
+  { from: 'NDLS', to: 'BSB', label: 'New Delhi ↔ Varanasi' },
+  { from: 'HWH', to: 'NJP', label: 'Howrah ↔ New Jalpaiguri' },
+  { from: 'CSMT', to: 'MAO', label: 'Mumbai ↔ Goa (Madgaon)' },
+  { from: 'HWH', to: 'YPR', label: 'Howrah ↔ Bengaluru' },
+  { from: 'BDTS', to: 'NZM', label: 'Bandra ↔ Nizamuddin' },
+  { from: 'PNBE', to: 'NDLS', label: 'Patna ↔ New Delhi' },
 ];
+
 
 export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
   onSelectTrainForDetails,
@@ -64,6 +63,9 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
   const [journeyDate, setJourneyDate] = useState('2026-11-15');
   const [selectedClass, setSelectedClass] = useState<CoachClass | 'ALL'>('ALL');
   const [selectedTrainType, setSelectedTrainType] = useState<string>('ALL');
+  const [serviceScope, setServiceScope] = useState<ServiceScope>('ALL');
+  const [connectingRoutes, setConnectingRoutes] = useState<ConnectingRoute[]>([]);
+  const [showConnecting, setShowConnecting] = useState<boolean>(false);
 
   // Live Running Status Modal State
   const [activeStatusTrain, setActiveStatusTrain] = useState<BaseTrain | null>(null);
@@ -85,52 +87,59 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
       journeyDate: '2026-11-15',
       travelClass: 'ALL',
       trainType: 'ALL',
+      serviceScope: 'ALL',
     });
   });
+
+  const runSearch = (src: string, dest: string, date: string, cls: CoachClass | 'ALL', type: string, scope: ServiceScope) => {
+    const filter: SearchFilterState = {
+      source: src,
+      destination: dest,
+      journeyDate: date,
+      travelClass: cls,
+      trainType: type,
+      serviceScope: scope,
+    };
+    const results = railwayService.searchTrains(filter);
+    setSearchResults(results);
+
+    // If both source and destination are set, calculate connecting routes
+    if (src && dest && src.toUpperCase() !== dest.toUpperCase()) {
+      const connects = railwayService.searchConnectingTrains(src, dest, date);
+      setConnectingRoutes(connects);
+      if (results.length === 0 && connects.length > 0) {
+        setShowConnecting(true);
+      }
+    } else {
+      setConnectingRoutes([]);
+      setShowConnecting(false);
+    }
+  };
 
   const handleSwapStations = () => {
     const temp = source;
     setSource(destination);
     setDestination(temp);
-    // If both stations exist and aren't same, auto-execute search with swapped values
     if (temp && destination && temp.toUpperCase() !== destination.toUpperCase()) {
-      const filter: SearchFilterState = {
-        source: destination,
-        destination: temp,
-        journeyDate,
-        travelClass: selectedClass,
-        trainType: selectedTrainType,
-      };
-      setSearchResults(railwayService.searchTrains(filter));
+      runSearch(destination, temp, journeyDate, selectedClass, selectedTrainType, serviceScope);
     }
   };
 
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (isSameStation) return;
+    runSearch(source, destination, journeyDate, selectedClass, selectedTrainType, serviceScope);
+  };
 
-    const filter: SearchFilterState = {
-      source,
-      destination,
-      journeyDate,
-      travelClass: selectedClass,
-      trainType: selectedTrainType,
-    };
-    const results = railwayService.searchTrains(filter);
-    setSearchResults(results);
+  const handleScopeChange = (newScope: ServiceScope) => {
+    setServiceScope(newScope);
+    runSearch(source, destination, journeyDate, selectedClass, selectedTrainType, newScope);
   };
 
   const handleApplyPreset = (from: string, to: string) => {
     setSource(from);
     setDestination(to);
-    const filter: SearchFilterState = {
-      source: from,
-      destination: to,
-      journeyDate,
-      travelClass: selectedClass,
-      trainType: selectedTrainType,
-    };
-    setSearchResults(railwayService.searchTrains(filter));
+    runSearch(from, to, journeyDate, selectedClass, selectedTrainType, serviceScope);
   };
 
   const handleResetFilters = () => {
@@ -138,6 +147,9 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
     setDestination('');
     setSelectedClass('ALL');
     setSelectedTrainType('ALL');
+    setServiceScope('ALL');
+    setConnectingRoutes([]);
+    setShowConnecting(false);
     setSearchResults(railwayService.getAllTrains());
   };
 
@@ -282,6 +294,31 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
           {/* Secondary Filters & Search Button */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
             <div className="flex flex-wrap items-center gap-3">
+              {/* Service Scope Filter */}
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-slate-500 font-semibold mr-1">Scope:</span>
+                {(
+                  [
+                    { id: 'ALL', label: 'All Services' },
+                    { id: 'OFFICIAL', label: '🔵 Official IR Timetable' },
+                    { id: 'SIMULATED', label: '🟡 Simulated Services' },
+                  ] as const
+                ).map(scope => (
+                  <button
+                    key={scope.id}
+                    type="button"
+                    onClick={() => handleScopeChange(scope.id as ServiceScope)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                      serviceScope === scope.id
+                        ? 'bg-blue-900 text-white font-semibold shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {scope.label}
+                  </button>
+                ))}
+              </div>
+
               {/* Class Filter */}
               <div className="flex items-center gap-1 text-xs">
                 <span className="text-slate-500 font-medium mr-1">Class:</span>
@@ -304,7 +341,7 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
               {/* Train Type */}
               <div className="flex items-center gap-1 text-xs overflow-x-auto pb-1 max-w-full">
                 <span className="text-slate-500 font-medium mr-1 shrink-0">Type:</span>
-                {(['ALL', 'Rajdhani', 'Vande Bharat', 'Shatabdi', 'Duronto', 'Garib Rath', 'Superfast', 'Mail Express'] as const).map(type => (
+                {(['ALL', 'Rajdhani', 'Vande Bharat', 'Shatabdi', 'Duronto', 'Garib Rath', 'Superfast', 'Mail Express', 'Passenger', 'MEMU', 'Local'] as const).map(type => (
                   <button
                     key={type}
                     type="button"
@@ -322,7 +359,7 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {(source || destination || selectedClass !== 'ALL' || selectedTrainType !== 'ALL') && (
+              {(source || destination || selectedClass !== 'ALL' || selectedTrainType !== 'ALL' || serviceScope !== 'ALL') && (
                 <button
                   type="button"
                   onClick={handleResetFilters}
@@ -375,7 +412,7 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
           <div className="space-y-0.5">
             <span className="font-bold text-blue-950">Academic Reservation System Notice: </span>
             <span>
-              This is a B.Tech CSE Java OOP laboratory project. Train schedules, station codes, and intermediate halt sequences are grounded in <strong>authentic Indian Railways published timetables</strong>. Seat inventory, fare estimation, and ticket booking operate as an <strong>academic simulation</strong>. No real financial transactions or official IRCTC bookings are generated.
+              This is a B.Tech CSE Java OOP laboratory project. Train schedules, station codes, and intermediate halt sequences are grounded in <strong>authentic Indian Railways published timetables</strong> (38 verified trains & 361 stations across 18 zones). Synthetic regional routes are flagged as <strong>Simulated Services</strong>. Seat inventory operates as an <strong>academic simulation</strong>.
             </span>
           </div>
         </div>
@@ -384,27 +421,134 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
         </span>
       </div>
 
-      {/* Results Header */}
+      {/* Results Header with Connecting Routes Switch */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-xs text-slate-600">
-          Showing <strong className="text-slate-900">{searchResults.length}</strong> matching train service{searchResults.length === 1 ? '' : 's'}
+          Showing <strong className="text-slate-900">{searchResults.length}</strong> direct/halt train service{searchResults.length === 1 ? '' : 's'}
           {source && destination && (
             <span> for route <strong>{source}</strong> <ArrowRight className="inline w-3 h-3 text-slate-400 mx-0.5" /> <strong>{destination}</strong></span>
           )}
           {source && !destination && <span> departing from <strong>{source}</strong></span>}
           {!source && destination && <span> arriving at <strong>{destination}</strong></span>}
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-slate-500">
+
+        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+          {connectingRoutes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowConnecting(!showConnecting)}
+              className={`px-2.5 py-1 rounded text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                showConnecting
+                  ? 'bg-indigo-900 text-white border-indigo-900'
+                  : 'bg-indigo-50 text-indigo-900 border-indigo-200 hover:bg-indigo-100'
+              }`}
+            >
+              <span>Connecting Hubs ({connectingRoutes.length})</span>
+            </button>
+          )}
+
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-blue-600" />
-            <span>Timetable: Official Schedule</span>
+            <span>🔵 Official Timetable</span>
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>Seats: Demo Simulation</span>
+            <span>🟡 Simulated Service</span>
           </span>
         </div>
       </div>
+
+      {/* Connecting Routes Box (if toggled or no direct trains) */}
+      {showConnecting && connectingRoutes.length > 0 && (
+        <div className="bg-indigo-50/50 border border-indigo-200 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-700" />
+              <h3 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                1-Hop Connecting Journeys via Major Railway Junctions ({connectingRoutes.length} available)
+              </h3>
+            </div>
+            <span className="text-[10px] font-semibold text-indigo-700 bg-white px-2 py-0.5 rounded border border-indigo-200">
+              Transfer Hub Routing
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {connectingRoutes.map((cr, idx) => (
+              <div
+                key={idx}
+                className="bg-white border border-indigo-100 rounded-lg p-3.5 shadow-2xs space-y-2.5"
+              >
+                <div className="flex flex-wrap items-center justify-between text-xs gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900">
+                      Via {cr.transferStationName} ({cr.transferStationCode})
+                    </span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-indigo-800 font-medium">Layover: {cr.layoverTime}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-slate-600">Total Duration: {cr.totalDuration}</span>
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-900">
+                    Est. Total Fare: ₹{cr.totalEstimatedFare}
+                  </div>
+                </div>
+
+                {/* Two Legs */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  {/* Leg 1 */}
+                  <div className="p-2.5 bg-slate-50 rounded border border-slate-100 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-800">Leg 1: {cr.leg1.trainName} ({cr.leg1.trainNumber})</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-900 font-semibold">
+                        {cr.leg1.trainType}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 flex items-center justify-between">
+                      <span>{cr.leg1.originStationCode} ({cr.leg1.departureTime})</span>
+                      <ArrowRight className="w-3 h-3 text-slate-400" />
+                      <span>{cr.leg1.destinationStationCode} ({cr.leg1.arrivalTime})</span>
+                    </div>
+                    <div className="pt-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => onBookTrain(cr.leg1.trainNumber)}
+                        className="text-[10px] font-semibold text-blue-900 hover:underline cursor-pointer"
+                      >
+                        Book Leg 1 →
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Leg 2 */}
+                  <div className="p-2.5 bg-slate-50 rounded border border-slate-100 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-800">Leg 2: {cr.leg2.trainName} ({cr.leg2.trainNumber})</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-900 font-semibold">
+                        {cr.leg2.trainType}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 flex items-center justify-between">
+                      <span>{cr.leg2.originStationCode} ({cr.leg2.departureTime})</span>
+                      <ArrowRight className="w-3 h-3 text-slate-400" />
+                      <span>{cr.leg2.destinationStationCode} ({cr.leg2.arrivalTime})</span>
+                    </div>
+                    <div className="pt-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => onBookTrain(cr.leg2.trainNumber)}
+                        className="text-[10px] font-semibold text-blue-900 hover:underline cursor-pointer"
+                      >
+                        Book Leg 2 →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Train Cards List */}
       <div className="space-y-4">
@@ -471,9 +615,15 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
                             Intermediate Stop Service
                           </span>
                         )}
-                        <span className="text-[10px] font-bold text-blue-900 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">
-                          SCHEDULE DATA
-                        </span>
+                        {train.provenance === 'OFFICIAL' ? (
+                          <span className="text-[10px] font-bold text-blue-900 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">
+                            🔵 OFFICIAL TIMETABLE
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded">
+                            🟡 SIMULATED SERVICE
+                          </span>
+                        )}
                       </h3>
                       <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
                         <span>Runs: {train.daysOfOperation.join(', ')}</span>
@@ -510,6 +660,12 @@ export const SearchTrainsPage: React.FC<SearchTrainsPageProps> = ({
                           ? 'bg-amber-50 text-amber-900 border border-amber-200'
                           : train.trainType === 'Rajdhani'
                           ? 'bg-blue-50 text-blue-900 border border-blue-200'
+                          : train.trainType === 'Shatabdi'
+                          ? 'bg-purple-50 text-purple-900 border border-purple-200'
+                          : train.trainType === 'Duronto'
+                          ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                          : train.trainType === 'Passenger' || train.trainType === 'MEMU' || train.trainType === 'Local'
+                          ? 'bg-teal-50 text-teal-900 border border-teal-200'
                           : 'bg-slate-100 text-slate-700'
                       }`}
                     >

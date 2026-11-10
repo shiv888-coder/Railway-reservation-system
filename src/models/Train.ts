@@ -23,11 +23,15 @@ export interface TrainDetailsJSON {
   distanceKm: number;
   daysOfOperation: string[];
   classesAvailable: CoachClass[];
-  totalSeats: Record<CoachClass, number>;
-  availableSeats: Record<CoachClass, number>;
-  baseFares: Record<CoachClass, number>;
+  totalSeats: Partial<Record<CoachClass, number>>;
+  availableSeats: Partial<Record<CoachClass, number>>;
+  baseFares: Partial<Record<CoachClass, number>>;
   halts: RouteHalt[];
   amenities: string[];
+  isSimulated?: boolean;
+  isDemoRoute?: boolean;
+  routeSourceType?: 'OFFICIAL' | 'SIMULATED';
+  provenance?: 'OFFICIAL' | 'SIMULATED';
 }
 
 /**
@@ -47,11 +51,13 @@ export abstract class BaseTrain {
   protected _distanceKm: number;
   protected _daysOfOperation: string[];
   protected _classesAvailable: CoachClass[];
-  protected _totalSeats: Record<CoachClass, number>;
-  protected _availableSeats: Record<CoachClass, number>;
-  protected _baseFares: Record<CoachClass, number>;
+  protected _totalSeats: Partial<Record<CoachClass, number>>;
+  protected _availableSeats: Partial<Record<CoachClass, number>>;
+  protected _baseFares: Partial<Record<CoachClass, number>>;
   protected _halts: RouteHalt[];
   protected _amenities: string[];
+  protected _isSimulated: boolean;
+  protected _provenance: 'OFFICIAL' | 'SIMULATED';
 
   constructor(data: TrainDetailsJSON) {
     this._trainNumber = data.trainNumber;
@@ -72,6 +78,8 @@ export abstract class BaseTrain {
     this._baseFares = { ...data.baseFares };
     this._halts = [...data.halts];
     this._amenities = [...data.amenities];
+    this._isSimulated = Boolean(data.isSimulated);
+    this._provenance = data.provenance || (data.isSimulated ? 'SIMULATED' : 'OFFICIAL');
   }
 
   // Getters for train properties (Encapsulation)
@@ -88,11 +96,13 @@ export abstract class BaseTrain {
   public get distanceKm(): number { return this._distanceKm; }
   public get daysOfOperation(): string[] { return [...this._daysOfOperation]; }
   public get classesAvailable(): CoachClass[] { return [...this._classesAvailable]; }
-  public get totalSeats(): Record<CoachClass, number> { return { ...this._totalSeats }; }
-  public get availableSeats(): Record<CoachClass, number> { return { ...this._availableSeats }; }
-  public get baseFares(): Record<CoachClass, number> { return { ...this._baseFares }; }
+  public get totalSeats(): Partial<Record<CoachClass, number>> { return { ...this._totalSeats }; }
+  public get availableSeats(): Partial<Record<CoachClass, number>> { return { ...this._availableSeats }; }
+  public get baseFares(): Partial<Record<CoachClass, number>> { return { ...this._baseFares }; }
   public get halts(): RouteHalt[] { return [...this._halts]; }
   public get amenities(): string[] { return [...this._amenities]; }
+  public get isSimulated(): boolean { return this._isSimulated; }
+  public get provenance(): 'OFFICIAL' | 'SIMULATED' { return this._provenance; }
 
   /**
    * Check seat availability for a specific class
@@ -257,6 +267,8 @@ export abstract class BaseTrain {
       baseFares: this._baseFares,
       halts: this._halts,
       amenities: this._amenities,
+      isSimulated: this._isSimulated,
+      provenance: this._provenance,
     };
   }
 }

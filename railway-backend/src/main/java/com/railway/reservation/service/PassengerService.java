@@ -1,24 +1,19 @@
 package com.railway.reservation.service;
 
-import com.railway.reservation.dto.PassengerDto;
-import com.railway.reservation.entity.PassengerEntity;
+import com.railway.reservation.model.Passenger;
 
 import java.util.List;
 
 /**
- * Service interface for passenger profile directory management.
- *
- * OOP Concept: Interface-Based Programming
+ * Service interface for passenger validation and profile retrieval.
  */
 public interface PassengerService {
 
-    List<PassengerEntity> getAllPassengers();
+    void validatePassenger(Passenger passenger);
 
-    PassengerEntity getPassengerById(Long id);
+    void validatePassengers(List<Passenger> passengers);
 
-    PassengerEntity createPassenger(PassengerDto dto);
+    List<Passenger> getPassengersByPnr(String pnr);
 
-    PassengerEntity updatePassenger(Long id, PassengerDto dto);
-
-    void deletePassenger(Long id);
+    List<Passenger> getAllPassengers();
 }

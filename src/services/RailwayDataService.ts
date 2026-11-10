@@ -42,13 +42,18 @@ export interface BookingRequest {
   }[];
 }
 
-import { VERIFIED_STATIONS, VERIFIED_TRAINS } from '../data/railwayDatasets.ts';
+import { ALL_INDIA_STATIONS, ALL_VERIFIED_TRAINS } from '../data/railwayDatasets.ts';
+import {
+  generateSimulatedTrain,
+  searchConnectingRoutes,
+  getStationBoardTimetable,
+} from './SimulatedTrainGenerator.ts';
 
-// Verified Indian Railways Seed Stations Directory (68 Major Stations across all 18 Zones)
-const INITIAL_STATIONS: StationData[] = VERIFIED_STATIONS;
+// Comprehensive All-India Stations Directory (361 Authentic Stations across all 18 Zones)
+const INITIAL_STATIONS: StationData[] = ALL_INDIA_STATIONS;
 
-// Verified Indian Railways Trains (24 Premier Services across Rajdhani, Shatabdi, Vande Bharat, Duronto, Garib Rath, Superfast)
-const INITIAL_TRAINS: TrainDetailsJSON[] = VERIFIED_TRAINS;
+// Verified Indian Railways Trains (38 Premier & Return Services across all categories)
+const INITIAL_TRAINS: TrainDetailsJSON[] = ALL_VERIFIED_TRAINS;
 
 // Initial demo passengers
 const INITIAL_PASSENGERS: PassengerData[] = [
@@ -447,18 +452,56 @@ class RailwayDataService {
     return this._trainsMap.get(trainNumber);
   }
 
-  public searchTrains(filters: SearchFilterState): BaseTrain[] {
-    const { source, destination, travelClass, trainType } = filters;
-    return this.getAllTrains().filter(train => {
-      // Route Serving Logic: Check if train serves the origin & destination corridor
-      // (either direct terminals or intermediate halts where boarding seq < deboarding seq)
-      const routeCheck = train.checkRouteService(source, destination);
-      if (!routeCheck.serves) return false;
+  public getStationByCode(code: string): Station | undefined {
+    return this._stations.find(s => s.code.toUpperCase() === code.trim().toUpperCase());
+  }
 
-      if (travelClass && travelClass !== 'ALL' && !train.classesAvailable.includes(travelClass)) return false;
-      if (trainType && trainType !== 'ALL' && train.trainType !== trainType) return false;
-      return true;
-    });
+  public searchTrains(filters: SearchFilterState): BaseTrain[] {
+    const { source, destination, travelClass, trainType, serviceScope = 'ALL', journeyDate = '2026-11-15' } = filters;
+
+    let matchingTrains: BaseTrain[] = [];
+
+    // 1. Official & existing verified timetable check
+    if (serviceScope !== 'SIMULATED') {
+      matchingTrains = this.getAllTrains().filter(train => {
+        if (serviceScope === 'OFFICIAL' && train.provenance !== 'OFFICIAL') return false;
+
+        const routeCheck = train.checkRouteService(source, destination);
+        if (!routeCheck.serves) return false;
+
+        if (travelClass && travelClass !== 'ALL' && !train.classesAvailable.includes(travelClass)) return false;
+        if (trainType && trainType !== 'ALL' && train.trainType !== trainType) return false;
+        return true;
+      });
+    }
+
+    // 2. Algorithmic simulated service generation for unserved corridors or when SIMULATED scope is requested
+    if (source && destination && source.trim().toUpperCase() !== destination.trim().toUpperCase()) {
+      const srcUpper = source.trim().toUpperCase();
+      const destUpper = destination.trim().toUpperCase();
+
+      if (serviceScope === 'SIMULATED' || (serviceScope === 'ALL' && matchingTrains.length === 0)) {
+        const simulated = generateSimulatedTrain(srcUpper, destUpper, journeyDate);
+        if (simulated) {
+          let matches = true;
+          if (travelClass && travelClass !== 'ALL' && !simulated.classesAvailable.includes(travelClass)) matches = false;
+          if (trainType && trainType !== 'ALL' && simulated.trainType !== trainType) matches = false;
+          if (matches) {
+            matchingTrains.push(simulated);
+          }
+        }
+      }
+    }
+
+    return matchingTrains;
+  }
+
+  public searchConnectingTrains(source: string, destination: string, dateStr: string = '2026-11-15') {
+    return searchConnectingRoutes(source, destination, dateStr, this.getAllTrains());
+  }
+
+  public async getStationBoard(stationCode: string) {
+    return getStationBoardTimetable(stationCode, this.getAllTrains());
   }
 
   public getAllReservations(): TicketReservation[] {

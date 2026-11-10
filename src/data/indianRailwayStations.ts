@@ -285,6 +285,8 @@ export const INDIAN_RAILWAY_STATIONS: StationData[] = [
   { code: 'BXR', name: 'Buxar', city: 'Buxar', state: 'Bihar', zone: 'East Central Railway (ECR)', division: 'Danapur', category: 'Regular Station' },
   { code: 'SHC', name: 'Saharsa Junction', city: 'Saharsa', state: 'Bihar', zone: 'East Central Railway (ECR)', division: 'Samastipur', category: 'Junction' },
   { code: 'KIR', name: 'Katihar Junction', city: 'Katihar', state: 'Bihar', zone: 'Northeast Frontier Railway (NFR)', division: 'Katihar', category: 'Divisional HQ Junction' },
+  { code: 'HJP', name: 'Hajipur Junction', city: 'Hajipur', state: 'Bihar', zone: 'East Central Railway (ECR)', division: 'Sonpur', category: 'Zonal HQ Junction' },
+  { code: 'CPR', name: 'Chhapra Junction', city: 'Chhapra', state: 'Bihar', zone: 'North Eastern Railway (NER)', division: 'Varanasi', category: 'Major Junction' },
   { code: 'DHN', name: 'Dhanbad Junction', city: 'Dhanbad', state: 'Jharkhand', zone: 'East Central Railway (ECR)', division: 'Dhanbad', category: 'Divisional HQ Coal Hub' },
   { code: 'GMO', name: 'NSCB Gomoh Junction', city: 'Gomoh', state: 'Jharkhand', zone: 'East Central Railway (ECR)', division: 'Dhanbad', category: 'Major Junction' },
   { code: 'PNME', name: 'Parasnath', city: 'Parasnath', state: 'Jharkhand', zone: 'East Central Railway (ECR)', division: 'Dhanbad', category: 'Pilgrimage Station' },

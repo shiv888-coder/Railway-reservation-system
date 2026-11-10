@@ -277,7 +277,18 @@ export const TicketBookingPage: React.FC<TicketBookingPageProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div className="space-y-1">
-                <label className="font-medium text-slate-700">Train *</label>
+                <div className="flex items-center justify-between">
+                  <label className="font-medium text-slate-700">Train *</label>
+                  {currentTrain.provenance === 'OFFICIAL' ? (
+                    <span className="text-[10px] font-bold text-blue-900 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">
+                      🔵 OFFICIAL TIMETABLE
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-300 px-1.5 py-0.2 rounded">
+                      🟡 SIMULATED SERVICE
+                    </span>
+                  )}
+                </div>
                 <select
                   value={selectedTrainNumber}
                   onChange={e => setSelectedTrainNumber(e.target.value)}
@@ -285,7 +296,7 @@ export const TicketBookingPage: React.FC<TicketBookingPageProps> = ({
                 >
                   {allTrains.map(t => (
                     <option key={t.trainNumber} value={t.trainNumber}>
-                      {t.trainNumber} - {t.trainName} ({t.source} → {t.destination})
+                      {t.trainNumber} - {t.trainName} ({t.source} → {t.destination}) [{t.provenance}]
                     </option>
                   ))}
                 </select>

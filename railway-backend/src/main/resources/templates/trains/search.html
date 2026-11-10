@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Search Trains — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <!-- Page Header -->
+    <div style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--ir-navy);">Search Trains &amp; Schedules</h1>
+        <p style="color: var(--ir-text-muted); font-size: 0.9rem;">
+            Explore verified Indian Railways timetables, direct corridors, intermediate halts, and operating days.
+        </p>
+    </div>
+
+    <!-- Search Form Card -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>🔍 Route &amp; Timetable Filters</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);">Instant search across all 367 stations</span>
+        </div>
+        <div class="ir-card-body">
+            <form th:action="@{/trains/search}" method="get">
+                <div class="ir-form-grid">
+                    <div class="ir-form-group">
+                        <label class="ir-label">Origin Station *</label>
+                        <input type="text" name="source" list="stationList" class="ir-input"
+                               th:value="${selectedSource}" placeholder="e.g. HWH or Howrah" required>
+                    </div>
+                    <div class="ir-form-group">
+                        <label class="ir-label">Destination Station *</label>
+                        <input type="text" name="destination" list="stationList" class="ir-input"
+                               th:value="${selectedDestination}" placeholder="e.g. NDLS or New Delhi" required>
+                    </div>
+                    <div class="ir-form-group">
+                        <label class="ir-label">Journey Date</label>
+                        <input type="date" name="journeyDate" class="ir-input" th:value="${selectedDate}">
+                    </div>
+                    <div class="ir-form-group">
+                        <label class="ir-label">Travel Class</label>
+                        <select name="coachClass" class="ir-select">
+                            <option value="">All Travel Classes</option>
+                            <option th:each="c : ${coachClasses}" th:value="${c.code}" th:text="${c.code} + ' - ' + ${c.displayName}"
+                                    th:selected="${selectedClass == c.code}"></option>
+                        </select>
+                    </div>
+                    <div class="ir-form-group">
+                        <label class="ir-label">Train Type</label>
+                        <select name="trainType" class="ir-select">
+                            <option value="">All Train Types</option>
+                            <option th:each="tt : ${trainTypes}" th:value="${tt.name()}" th:text="${tt.displayName}"
+                                    th:selected="${selectedType == tt.name()}"></option>
+                        </select>
+                    </div>
+                    <div class="ir-form-group" style="justify-content: flex-end;">
+                        <button type="submit" class="ir-btn ir-btn-primary" style="height: 42px;">
+                            Search Trains
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <datalist id="stationList">
+                <option th:each="s : ${stations}" th:value="${s.stationCode}" th:text="${s.stationName} + ' (' + ${s.city} + ')'"></option>
+            </datalist>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>
+                Train Results
+                <span style="font-weight: normal; color: var(--ir-text-muted); font-size: 0.85rem;"
+                      th:text="'(' + ${trains.size()} + ' trains found)'"></span>
+            </span>
+            <div th:if="${selectedSource != null && selectedDestination != null}">
+                <span class="ir-badge ir-badge-superfast" th:text="${selectedSource} + ' ➔ ' + ${selectedDestination}"></span>
+            </div>
+        </div>
+        <div class="ir-card-body" style="padding: 0;">
+            <div th:if="${trains.isEmpty()}" style="padding: 3rem 1.5rem; text-align: center; color: var(--ir-text-muted);">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🚆</div>
+                <h3 style="font-size: 1.2rem; color: var(--ir-navy); margin-bottom: 0.25rem;">No Direct Trains Found</h3>
+                <p style="font-size: 0.875rem;">
+                    No trains currently match the selected route or date filter. Try searching between major junction corridors like Howrah (HWH), Sealdah (SDAH), New Delhi (NDLS), or Patna (PNBE).
+                </p>
+            </div>
+
+            <div th:if="${!trains.isEmpty()}" class="ir-table-responsive">
+                <table class="ir-table">
+                    <thead>
+                        <tr>
+                            <th>Train No. &amp; Name</th>
+                            <th>Category</th>
+                            <th>Route Corridor</th>
+                            <th>Departure &amp; Arrival</th>
+                            <th>Duration</th>
+                            <th>Distance</th>
+                            <th>Runs On</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="train : ${trains}">
+                            <td>
+                                <strong th:text="${train.trainNumber}">12301</strong>
+                                <div style="font-weight: 600; color: var(--ir-navy);" th:text="${train.trainName}">Howrah Rajdhani Express</div>
+                            </td>
+                            <td>
+                                <span th:if="${train.trainType.name() == 'RAJDHANI'}" class="ir-badge ir-badge-rajdhani">Rajdhani</span>
+                                <span th:if="${train.trainType.name() == 'VANDE_BHARAT'}" class="ir-badge ir-badge-vandebharat">Vande Bharat</span>
+                                <span th:if="${train.trainType.name() == 'SUPERFAST'}" class="ir-badge ir-badge-superfast">Superfast</span>
+                                <span th:if="${train.trainType.name() == 'MAIL_EXPRESS'}" class="ir-badge ir-badge-mailexpress">Mail/Express</span>
+                            </td>
+                            <td>
+                                <span th:text="${train.sourceStationCode}">HWH</span> &rarr;
+                                <span th:text="${train.destinationStationCode}">NDLS</span>
+                            </td>
+                            <td>
+                                <div><strong th:text="${train.departureTime}">16:50</strong> <span style="font-size: 0.75rem; color: var(--ir-text-muted);">Dep</span></div>
+                                <div><strong th:text="${train.arrivalTime}">10:05</strong> <span style="font-size: 0.75rem; color: var(--ir-text-muted);">Arr</span></div>
+                            </td>
+                            <td th:text="${train.duration}">17h 15m</td>
+                            <td th:text="${train.distanceKm} + ' km'">1451 km</td>
+                            <td>
+                                <span th:text="${train.operatingDays}" style="font-size: 0.8rem; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px;">Daily</span>
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <a th:href="@{'/trains/' + ${train.trainNumber}}" class="ir-btn ir-btn-outline ir-btn-sm" style="margin-right: 0.35rem;">
+                                    Timetable
+                                </a>
+                                <a th:href="@{'/booking?trainNumber=' + ${train.trainNumber} + '&source=' + ${train.sourceStationCode} + '&destination=' + ${train.destinationStationCode}}"
+                                   class="ir-btn ir-btn-primary ir-btn-sm">
+                                    Book Now
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

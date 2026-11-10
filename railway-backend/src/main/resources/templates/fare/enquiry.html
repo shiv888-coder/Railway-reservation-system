@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Fare Details &amp; Tariff Calculator — Indian Railways</title>
+</head>
+<body>
+<section>
+
+    <!-- Page Header -->
+    <div style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--ir-navy);">Official Railway Tariff Calculator</h1>
+        <p style="color: var(--ir-text-muted); font-size: 0.9rem;">
+            Inspect official railway fares verified against stored SQLite database tariffs. Includes senior citizen concessions, premier catering, and GST breakdowns.
+        </p>
+    </div>
+
+    <!-- Calculator Input Form -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>Calculate Route Tariff</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);">Authentic IRCTC tariff rules</span>
+        </div>
+        <div class="ir-card-body">
+            <form th:action="@{/fare-enquiry}" method="get" class="ir-form-grid">
+                <div class="ir-form-group">
+                    <label class="ir-label">Select Train *</label>
+                    <select name="trainNumber" class="ir-select" required>
+                        <option value="">-- Choose Train --</option>
+                        <option th:each="t : ${trains}" th:value="${t.trainNumber}"
+                                th:text="${t.trainNumber} + ' — ' + ${t.trainName}"
+                                th:selected="${selectedTrain == t.trainNumber}"></option>
+                    </select>
+                </div>
+
+                <div class="ir-form-group">
+                    <label class="ir-label">Travel Class *</label>
+                    <select name="coachClass" class="ir-select" required>
+                        <option value="">-- Choose Class --</option>
+                        <option th:each="c : ${coachClasses}" th:value="${c.code}"
+                                th:text="${c.code} + ' — ' + ${c.displayName}"
+                                th:selected="${selectedClass == c.code}"></option>
+                    </select>
+                </div>
+
+                <div class="ir-form-group">
+                    <label class="ir-label">Adult Passengers</label>
+                    <input type="number" name="adults" min="0" max="6" class="ir-input" th:value="${adults}">
+                </div>
+
+                <div class="ir-form-group">
+                    <label class="ir-label">Senior Citizens (Age 60+)</label>
+                    <input type="number" name="seniors" min="0" max="6" class="ir-input" th:value="${seniors}">
+                </div>
+
+                <div class="ir-form-group" style="justify-content: flex-end;">
+                    <button type="submit" class="ir-btn ir-btn-primary" style="height: 42px;">
+                        Compute Fare Breakdown
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fare Breakdown Results Card -->
+    <div th:if="${fareBreakdown != null}" class="ir-card" style="border: 2px solid var(--ir-blue);">
+        <div class="ir-card-header" style="background: #eff6ff;">
+            <span>
+                🧾 Verified Tariff Breakdown for Train <strong th:text="${fareBreakdown.trainNumber}">12301</strong>
+                (<span th:text="${fareBreakdown.coachClass.displayName}">AC 3 Tier</span>)
+            </span>
+            <span class="ir-badge ir-badge-confirmed">OFFICIAL TARIFF</span>
+        </div>
+        <div class="ir-card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem;">
+
+                <!-- Summary Info -->
+                <div>
+                    <h3 style="font-size: 1.1rem; color: var(--ir-navy); margin-bottom: 0.75rem;">Passenger Demographics</h3>
+                    <div style="background: #f8fafc; border: 1px solid var(--ir-border); border-radius: 6px; padding: 1rem; font-size: 0.9rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="color: var(--ir-text-muted);">Total Passengers:</span>
+                            <strong th:text="${fareBreakdown.passengerCount}">2</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="color: var(--ir-text-muted);">Senior Citizens (Age 60+):</span>
+                            <strong style="color: #92400e;" th:text="${fareBreakdown.seniorCitizenCount}">1</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--ir-text-muted);">General Adult Passengers:</span>
+                            <strong th:text="${fareBreakdown.passengerCount - fareBreakdown.seniorCitizenCount}">1</strong>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1rem;">
+                        <a th:href="@{'/booking?trainNumber=' + ${fareBreakdown.trainNumber} + '&coachClass=' + ${fareBreakdown.coachClass.code}}"
+                           class="ir-btn ir-btn-primary" style="width: 100%;">
+                            Book Now at this Fare &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Tariff Line Item Breakdown -->
+                <div>
+                    <h3 style="font-size: 1.1rem; color: var(--ir-navy); margin-bottom: 0.75rem;">Itemized Tariff Receipt</h3>
+                    <div style="border: 1px solid var(--ir-border); border-radius: 6px; overflow: hidden;">
+                        <table class="ir-table">
+                            <tbody>
+                                <tr>
+                                    <td>Base Travel Fare</td>
+                                    <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(fareBreakdown.baseFare, 1, 2)}">₹3,960.00</td>
+                                </tr>
+                                <tr th:if="${fareBreakdown.seniorDiscount > 0}" style="color: #065f46; background: #ecfdf5;">
+                                    <td>Senior Citizen Concession (40% off Base)</td>
+                                    <td style="text-align: right;" th:text="'-₹' + ${#numbers.formatDecimal(fareBreakdown.seniorDiscount, 1, 2)}">-₹792.00</td>
+                                </tr>
+                                <tr>
+                                    <td>IRCTC Reservation Charge</td>
+                                    <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(fareBreakdown.reservationCharge, 1, 2)}">₹80.00</td>
+                                </tr>
+                                <tr th:if="${fareBreakdown.superfastCharge > 0}">
+                                    <td>Superfast / Premier Surcharge</td>
+                                    <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(fareBreakdown.superfastCharge, 1, 2)}">₹90.00</td>
+                                </tr>
+                                <tr th:if="${fareBreakdown.cateringCharge > 0}">
+                                    <td>Premier Catering (Rajdhani/Vande Bharat)</td>
+                                    <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(fareBreakdown.cateringCharge, 1, 2)}">₹560.00</td>
+                                </tr>
+                                <tr th:if="${fareBreakdown.gstAmount > 0}">
+                                    <td>Goods &amp; Services Tax (5% AC GST)</td>
+                                    <td style="text-align: right;" th:text="'₹' + ${#numbers.formatDecimal(fareBreakdown.gstAmount, 1, 2)}">₹166.90</td>
+                                </tr>
+                                <tr style="background: #f1f5f9; font-weight: 800; font-size: 1.05rem;">
+                                    <td style="color: var(--ir-navy);">Grand Total Fare</td>
+                                    <td style="text-align: right; color: var(--ir-blue);" th:text="'₹' + ${#numbers.formatDecimal(fareBreakdown.totalFare, 1, 2)}">₹4,064.90</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

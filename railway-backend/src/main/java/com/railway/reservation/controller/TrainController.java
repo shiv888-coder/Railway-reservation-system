@@ -1,123 +1,124 @@
 package com.railway.reservation.controller;
 
-import com.railway.reservation.entity.BaseTrainEntity;
-import com.railway.reservation.entity.StationEntity;
-import com.railway.reservation.entity.TrainSeatEntity;
-import com.railway.reservation.service.TrainService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import com.railway.reservation.enums.CoachClass;
+import com.railway.reservation.enums.TrainType;
+import com.railway.reservation.model.SeatInventory;
+import com.railway.reservation.model.Station;
+import com.railway.reservation.model.Train;
+import com.railway.reservation.model.TrainRoute;
+import com.railway.reservation.model.TrainSchedule;
+import com.railway.reservation.service.SeatAvailabilityService;
+import com.railway.reservation.service.StationService;
+import com.railway.reservation.service.TrainSearchService;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * REST Controller for Train schedules, stations, timetables, and seat availability.
+ * Controller for Train Search and Detailed Timetable / Route inspection.
  */
-@RestController
-@RequestMapping("/api")
+@Controller
+@RequestMapping("/trains")
 public class TrainController {
 
-    private final TrainService trainService;
+    private final TrainSearchService trainSearchService;
+    private final StationService stationService;
+    private final SeatAvailabilityService seatAvailabilityService;
 
-    public TrainController(TrainService trainService) {
-        this.trainService = trainService;
+    public TrainController(TrainSearchService trainSearchService,
+                           StationService stationService,
+                           SeatAvailabilityService seatAvailabilityService) {
+        this.trainSearchService = trainSearchService;
+        this.stationService = stationService;
+        this.seatAvailabilityService = seatAvailabilityService;
     }
 
-    /**
-     * GET /api/stations
-     * Retrieves all railway stations in the network.
-     */
-    @GetMapping("/stations")
-    public ResponseEntity<List<StationEntity>> getAllStations() {
-        List<StationEntity> stations = trainService.getAllStations();
-        return ResponseEntity.ok(stations);
-    }
+    @GetMapping("/search")
+    public String searchTrains(
+            @RequestParam(required = false) String source,
+            @RequestParam(required = false) String destination,
+            @RequestParam(required = false) String journeyDate,
+            @RequestParam(required = false) String coachClass,
+            @RequestParam(required = false) String trainType,
+            Model model) {
 
-    /**
-     * GET /api/stations/{code}
-     * Retrieves station details by its unique uppercase station code (e.g. NDLS, HWH).
-     */
-    @GetMapping("/stations/{code}")
-    public ResponseEntity<StationEntity> getStationByCode(@PathVariable("code") String code) {
-        StationEntity station = trainService.getStationByCode(code);
-        return ResponseEntity.ok(station);
-    }
+        List<Station> allStations = stationService.getAllStations();
+        model.addAttribute("stations", allStations);
+        model.addAttribute("selectedSource", source);
+        model.addAttribute("selectedDestination", destination);
+        model.addAttribute("selectedDate", journeyDate);
+        model.addAttribute("selectedClass", coachClass);
+        model.addAttribute("selectedType", trainType);
+        model.addAttribute("coachClasses", CoachClass.values());
+        model.addAttribute("trainTypes", TrainType.values());
 
-    /**
-     * GET /api/trains
-     * Retrieves all registered trains.
-     */
-    @GetMapping("/trains")
-    public ResponseEntity<List<BaseTrainEntity>> getAllTrains() {
-        List<BaseTrainEntity> trains = trainService.getAllTrains();
-        return ResponseEntity.ok(trains);
-    }
+        List<Train> searchResults = new ArrayList<>();
+        boolean hasSearched = false;
 
-    /**
-     * GET /api/trains/search?source=NDLS&destination=HWH
-     * Searches for trains between origin and destination stations.
-     */
-    @GetMapping("/trains/search")
-    public ResponseEntity<List<BaseTrainEntity>> searchTrains(
-            @RequestParam(name = "source", required = false) String source,
-            @RequestParam(name = "destination", required = false) String destination) {
-        List<BaseTrainEntity> matchingTrains = trainService.searchTrains(source, destination);
-        return ResponseEntity.ok(matchingTrains);
-    }
+        if (source != null && !source.trim().isEmpty() && destination != null && !destination.trim().isEmpty()) {
+            hasSearched = true;
+            try {
+                CoachClass cc = (coachClass != null && !coachClass.trim().isEmpty()) ? CoachClass.fromCode(coachClass.trim()) : null;
+                List<Train> results;
 
-    /**
-     * GET /api/trains/{trainNumber}
-     * Retrieves complete train details, halts, and timetable.
-     */
-    @GetMapping("/trains/{trainNumber}")
-    public ResponseEntity<BaseTrainEntity> getTrainDetails(@PathVariable("trainNumber") String trainNumber) {
-        BaseTrainEntity train = trainService.getTrainByNumber(trainNumber);
-        return ResponseEntity.ok(train);
-    }
+                if (cc != null && journeyDate != null && !journeyDate.trim().isEmpty()) {
+                    results = trainSearchService.searchTrains(source, destination, journeyDate, cc);
+                } else if (journeyDate != null && !journeyDate.trim().isEmpty()) {
+                    results = trainSearchService.searchTrains(source, destination, journeyDate);
+                } else {
+                    results = trainSearchService.searchTrains(source, destination);
+                }
 
-    /**
-     * GET /api/trains/{trainNumber}/seats
-     * GET /api/trains/{trainNumber}/availability
-     * Retrieves class-wise seat capacity and availability for a train.
-     */
-    @GetMapping({"/trains/{trainNumber}/seats", "/trains/{trainNumber}/availability"})
-    public ResponseEntity<List<TrainSeatEntity>> getTrainSeats(@PathVariable("trainNumber") String trainNumber) {
-        BaseTrainEntity train = trainService.getTrainByNumber(trainNumber);
-        return ResponseEntity.ok(train.getSeats());
-    }
+                if (trainType != null && !trainType.trim().isEmpty()) {
+                    results = results.stream()
+                            .filter(t -> t.getTrainType().name().equalsIgnoreCase(trainType.trim()) ||
+                                         t.getCategoryName().equalsIgnoreCase(trainType.trim()))
+                            .collect(Collectors.toList());
+                }
 
-    /**
-     * GET /api/trains/{trainNumber}/live-status
-     * Backend proxy endpoint for live Indian Railway running enquiry.
-     * Evaluates RAILWAY_API_KEY from environment variables to query authorized gateway securely,
-     * or returns explicit diagnostic state.
-     */
-    @GetMapping("/trains/{trainNumber}/live-status")
-    public ResponseEntity<java.util.Map<String, Object>> getLiveRunningStatus(@PathVariable("trainNumber") String trainNumber) {
-        String apiKey = System.getenv("RAILWAY_API_KEY");
-        String apiUrl = System.getenv("VITE_RAILWAY_API_URL");
-
-        BaseTrainEntity train = trainService.getTrainByNumber(trainNumber);
-        java.util.Map<String, Object> response = new java.util.HashMap<>();
-        response.put("trainNumber", train.getTrainNumber());
-        response.put("trainName", train.getTrainName());
-        response.put("sourceStationName", train.getSourceStation().getStationName());
-        response.put("destinationStationName", train.getDestinationStation().getStationName());
-        response.put("lastUpdated", java.time.LocalTime.now().toString().substring(0, 8));
-
-        if (apiKey == null || apiKey.trim().isEmpty()) {
-            response.put("status", "UNAVAILABLE");
-            response.put("sourceType", "UNAVAILABLE");
-            response.put("apiConfigured", false);
-            response.put("errorCode", "MISSING_API_KEY");
-            response.put("message", "RAILWAY_API_KEY is not configured in backend environment variables. Live GPS running telemetry is unavailable.");
-            return ResponseEntity.ok(response);
+                searchResults = results;
+            } catch (Exception e) {
+                model.addAttribute("errorMessage", e.getMessage());
+            }
+        } else {
+            // Show all trains initially if no search query provided
+            searchResults = trainSearchService.getAllTrains();
         }
 
-        response.put("apiConfigured", true);
-        response.put("sourceType", "LIVE");
-        response.put("status", "ON_TIME");
-        response.put("delayMinutes", 0);
-        response.put("message", "Live railway gateway query executed.");
-        return ResponseEntity.ok(response);
+        model.addAttribute("hasSearched", hasSearched);
+        model.addAttribute("trains", searchResults);
+        return "trains/search";
+    }
+
+    @GetMapping("/{trainNumber}")
+    public String showTrainDetails(@PathVariable String trainNumber, Model model) {
+        try {
+            Train train = trainSearchService.getTrainByNumber(trainNumber);
+            List<TrainRoute> routes = trainSearchService.getTrainRoute(trainNumber);
+            List<TrainSchedule> schedules = trainSearchService.getTrainSchedule(trainNumber);
+            List<SeatInventory> seatMatrix = seatAvailabilityService.getTrainSeatMatrix(trainNumber);
+
+            Station srcStation = stationService.getStationByCode(train.getSourceStationCode());
+            Station dstStation = stationService.getStationByCode(train.getDestinationStationCode());
+
+            model.addAttribute("train", train);
+            model.addAttribute("routes", routes);
+            model.addAttribute("schedules", schedules);
+            model.addAttribute("seatMatrix", seatMatrix);
+            model.addAttribute("sourceStation", srcStation);
+            model.addAttribute("destinationStation", dstStation);
+
+            return "trains/details";
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "Train details not found for: " + trainNumber);
+            return "error/404";
+        }
     }
 }

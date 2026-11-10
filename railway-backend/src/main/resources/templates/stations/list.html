@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Station Directory — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <!-- Page Header -->
+    <div style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--ir-navy);">Indian Railways Station Directory</h1>
+        <p style="color: var(--ir-text-muted); font-size: 0.9rem;">
+            Explore all 367 authentic Indian Railway stations across all 18 administrative zones, including major junctions, suburban terminals, and state corridors.
+        </p>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>🔍 Filter Stations</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);"
+                  th:text="${totalCount} + ' stations available'"></span>
+        </div>
+        <div class="ir-card-body">
+            <form th:action="@{/stations}" method="get" class="ir-form-grid">
+                <div class="ir-form-group" style="grid-column: span 2;">
+                    <label class="ir-label">Search by Station Name, Code, or City</label>
+                    <input type="text" name="query" class="ir-input"
+                           th:value="${selectedQuery}" placeholder="e.g. Howrah, HWH, Naihati, NH, Rampurhat, RPH, Kolkata">
+                </div>
+                <div class="ir-form-group">
+                    <label class="ir-label">Railway Zone</label>
+                    <select name="zone" class="ir-select">
+                        <option value="">All 18 Railway Zones</option>
+                        <option th:each="z : ${allZones}" th:value="${z}" th:text="${z}"
+                                th:selected="${selectedZone == z}"></option>
+                    </select>
+                </div>
+                <div class="ir-form-group" style="justify-content: flex-end;">
+                    <button type="submit" class="ir-btn ir-btn-primary" style="height: 42px;">
+                        Filter Stations
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stations List Table -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>Verified Stations</span>
+            <a th:href="@{/trains/search}" class="ir-btn ir-btn-outline ir-btn-sm">Search Trains from Station &rarr;</a>
+        </div>
+        <div class="ir-card-body ir-table-responsive" style="padding: 0;">
+            <table class="ir-table">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Code</th>
+                        <th>Station Name</th>
+                        <th>City</th>
+                        <th>State</th>
+                        <th>Railway Zone</th>
+                        <th>Category</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="station : ${stations}">
+                        <td>
+                            <strong style="color: var(--ir-blue); font-size: 1rem;" th:text="${station.stationCode}">HWH</strong>
+                        </td>
+                        <td>
+                            <strong th:text="${station.stationName}">Howrah Junction</strong>
+                        </td>
+                        <td th:text="${station.city}">Kolkata</td>
+                        <td th:text="${station.state}">West Bengal</td>
+                        <td>
+                            <span th:text="${station.zone}" style="font-size: 0.8rem; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 4px;">Eastern Railway (ER)</span>
+                        </td>
+                        <td>
+                            <span class="ir-badge ir-badge-mailexpress" th:text="${station.category}">NSG-1</span>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a th:href="@{'/trains/search?source=' + ${station.stationCode}}" class="ir-btn ir-btn-outline ir-btn-sm">
+                                Trains From Here
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

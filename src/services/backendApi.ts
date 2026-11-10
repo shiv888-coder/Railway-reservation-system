@@ -122,13 +122,13 @@ export function mapBackendTrainToFrontend(raw: any): TrainDetailsJSON {
   );
 
   const totalSeats: Record<CoachClass, number> = {
-    '1A': 0, '2A': 0, '3A': 0, 'SL': 0, 'CC': 0, 'EC': 0,
+    '1A': 0, '2A': 0, '3A': 0, 'SL': 0, 'CC': 0, 'EC': 0, '2S': 0,
   };
   const availableSeats: Record<CoachClass, number> = {
-    '1A': 0, '2A': 0, '3A': 0, 'SL': 0, 'CC': 0, 'EC': 0,
+    '1A': 0, '2A': 0, '3A': 0, 'SL': 0, 'CC': 0, 'EC': 0, '2S': 0,
   };
   const baseFares: Record<CoachClass, number> = {
-    '1A': 0, '2A': 0, '3A': 0, 'SL': 0, 'CC': 0, 'EC': 0,
+    '1A': 0, '2A': 0, '3A': 0, 'SL': 0, 'CC': 0, 'EC': 0, '2S': 0,
   };
 
   for (const st of raw.seats || []) {

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title th:text="${train.trainNumber} + ' - ' + ${train.trainName} + ' — Indian Railways'">Train Details</title>
+</head>
+<body>
+<section>
+
+    <!-- Navigation Breadcrumb -->
+    <div style="margin-bottom: 1rem; font-size: 0.85rem;">
+        <a th:href="@{/trains/search}" style="color: var(--ir-blue); text-decoration: none;">&larr; Back to Train Search</a>
+    </div>
+
+    <!-- Train Header Banner -->
+    <div style="background: linear-gradient(135deg, #0b2545 0%, #1e3a8a 100%); color: white; border-radius: 8px; padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+                <h1 style="font-size: 1.85rem; font-weight: 800;" th:text="${train.trainNumber} + ' — ' + ${train.trainName}">12301 — Howrah Rajdhani Express</h1>
+                <span th:if="${train.trainType.name() == 'RAJDHANI'}" class="ir-badge ir-badge-rajdhani">Rajdhani</span>
+                <span th:if="${train.trainType.name() == 'VANDE_BHARAT'}" class="ir-badge ir-badge-vandebharat">Vande Bharat</span>
+                <span th:if="${train.trainType.name() == 'SUPERFAST'}" class="ir-badge ir-badge-superfast">Superfast</span>
+                <span th:if="${train.trainType.name() == 'MAIL_EXPRESS'}" class="ir-badge ir-badge-mailexpress">Mail/Express</span>
+            </div>
+            <div style="color: #cbd5e1; font-size: 0.95rem;">
+                <span th:text="${sourceStation != null ? sourceStation.stationName : train.sourceStationCode}">Howrah Jn</span>
+                (<strong th:text="${train.sourceStationCode}">HWH</strong>) &rarr;
+                <span th:text="${destinationStation != null ? destinationStation.stationName : train.destinationStationCode}">New Delhi</span>
+                (<strong th:text="${train.destinationStationCode}">NDLS</strong>)
+                &bull; <span th:text="${train.distanceKm} + ' km'">1451 km</span>
+                &bull; <span th:text="${train.duration}">17h 15m</span>
+            </div>
+        </div>
+        <div>
+            <a th:href="@{'/booking?trainNumber=' + ${train.trainNumber} + '&source=' + ${train.sourceStationCode} + '&destination=' + ${train.destinationStationCode}}"
+               class="ir-btn" style="background: var(--ir-gold); color: #0b2545; font-weight: 700;">
+                🎫 Book This Train
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Info Cards -->
+    <div class="ir-metrics-grid" style="margin-bottom: 1.5rem;">
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon">⏰</div>
+            <div>
+                <div class="ir-metric-val" th:text="${train.departureTime}">16:50</div>
+                <div class="ir-metric-lbl">Departure Time</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon">🏁</div>
+            <div>
+                <div class="ir-metric-val" th:text="${train.arrivalTime}">10:05</div>
+                <div class="ir-metric-lbl">Arrival Time</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon">📅</div>
+            <div>
+                <div class="ir-metric-val" style="font-size: 1.1rem;" th:text="${train.operatingDays}">Daily</div>
+                <div class="ir-metric-lbl">Operating Schedule</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon">🚉</div>
+            <div>
+                <div class="ir-metric-val" th:text="${routes != null ? routes.size() : 0}">8</div>
+                <div class="ir-metric-lbl">Route Halts</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Available Seat Matrix across Classes -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>💺 Accommodation Classes &amp; Live Available Seats</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);">Verified against SQLite seat_inventory</span>
+        </div>
+        <div class="ir-card-body ir-table-responsive" style="padding: 0;">
+            <table class="ir-table">
+                <thead>
+                    <tr>
+                        <th>Class Code</th>
+                        <th>Class Description</th>
+                        <th>Available Seats</th>
+                        <th>Total Capacity</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="inv : ${seatMatrix}">
+                        <td><strong th:text="${inv.coachClass.code}">3A</strong></td>
+                        <td th:text="${inv.coachClass.displayName}">AC 3 Tier</td>
+                        <td>
+                            <strong style="color: #166534; font-size: 1.05rem;" th:text="${inv.availableSeats}">96</strong>
+                        </td>
+                        <td th:text="${inv.totalSeats}">120</td>
+                        <td>
+                            <span th:if="${inv.availableSeats > 10}" class="ir-badge ir-badge-confirmed">AVAILABLE</span>
+                            <span th:if="${inv.availableSeats <= 10 && inv.availableSeats > 0}" class="ir-badge ir-badge-rajdhani">FEW SEATS</span>
+                            <span th:if="${inv.availableSeats == 0}" class="ir-badge ir-badge-cancelled">REGRET</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a th:href="@{'/booking?trainNumber=' + ${train.trainNumber} + '&coachClass=' + ${inv.coachClass.code} + '&source=' + ${train.sourceStationCode} + '&destination=' + ${train.destinationStationCode}}"
+                               class="ir-btn ir-btn-primary ir-btn-sm">
+                                Book in <span th:text="${inv.coachClass.code}">3A</span>
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Complete Route & Intermediate Halts Table -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>🗺️ Complete Route &amp; Timetable Stops</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);">Sequence-ordered authentic stops</span>
+        </div>
+        <div class="ir-card-body ir-table-responsive" style="padding: 0;">
+            <table class="ir-table">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">Halt #</th>
+                        <th>Station Code</th>
+                        <th>Scheduled Arrival</th>
+                        <th>Scheduled Departure</th>
+                        <th>Halt Duration</th>
+                        <th>Journey Day</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="sch : ${schedules}">
+                        <td style="font-weight: 700; color: var(--ir-navy);" th:text="${sch.stopSequence}">1</td>
+                        <td>
+                            <span class="ir-badge ir-badge-superfast" th:text="${sch.stationCode}">HWH</span>
+                        </td>
+                        <td>
+                            <span th:text="${sch.arrivalTime != null && !sch.arrivalTime.isEmpty() ? sch.arrivalTime : '--'}">--</span>
+                        </td>
+                        <td>
+                            <strong th:text="${sch.departureTime != null && !sch.departureTime.isEmpty() ? sch.departureTime : '--'}">16:50</strong>
+                        </td>
+                        <td>
+                            <span th:if="${sch.haltMinutes > 0}" th:text="${sch.haltMinutes} + ' min'">5 min</span>
+                            <span th:if="${sch.haltMinutes == 0}">Origin / Terminus</span>
+                        </td>
+                        <td>
+                            <span th:text="'Day ' + ${sch.dayNumber}" style="font-size: 0.8rem; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px;">Day 1</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

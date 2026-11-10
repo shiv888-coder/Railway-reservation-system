@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Book Ticket — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <!-- Page Header -->
+    <div style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--ir-navy);">Book Train Ticket</h1>
+        <p style="color: var(--ir-text-muted); font-size: 0.9rem;">
+            Complete your railway reservation with verified tariffs, automatic coach &amp; berth assignment, and instant 10-digit PNR issuance.
+        </p>
+    </div>
+
+    <!-- Booking Form Container -->
+    <form th:action="@{/booking/submit}" th:object="${bookingForm}" method="post">
+
+        <!-- Journey Parameters Card -->
+        <div class="ir-card">
+            <div class="ir-card-header">
+                <span>1. Journey &amp; Train Details</span>
+                <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);">Step 1 of 2</span>
+            </div>
+            <div class="ir-card-body">
+                <div class="ir-form-grid">
+                    <div class="ir-form-group">
+                        <label class="ir-label">Select Train *</label>
+                        <select th:field="*{trainNumber}" class="ir-select" id="trainSelect" required>
+                            <option value="">-- Choose a Train --</option>
+                            <option th:each="t : ${allTrains}" th:value="${t.trainNumber}"
+                                    th:text="${t.trainNumber} + ' — ' + ${t.trainName} + ' (' + ${t.sourceStationCode} + ' ➔ ' + ${t.destinationStationCode} + ')'"
+                                    th:selected="${bookingForm.trainNumber == t.trainNumber}"></option>
+                        </select>
+                    </div>
+
+                    <div class="ir-form-group">
+                        <label class="ir-label">Origin Station Code *</label>
+                        <input type="text" th:field="*{sourceStationCode}" list="stationDatalist" class="ir-input"
+                               placeholder="e.g. HWH" required>
+                    </div>
+
+                    <div class="ir-form-group">
+                        <label class="ir-label">Destination Station Code *</label>
+                        <input type="text" th:field="*{destinationStationCode}" list="stationDatalist" class="ir-input"
+                               placeholder="e.g. NDLS" required>
+                    </div>
+
+                    <div class="ir-form-group">
+                        <label class="ir-label">Journey Date *</label>
+                        <input type="date" th:field="*{journeyDate}" class="ir-input" required>
+                    </div>
+
+                    <div class="ir-form-group">
+                        <label class="ir-label">Coach / Travel Class *</label>
+                        <select th:field="*{coachClass}" class="ir-select" required>
+                            <option th:each="cc : ${coachClasses}" th:value="${cc.name()}"
+                                    th:text="${cc.code} + ' — ' + ${cc.displayName}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <datalist id="stationDatalist">
+                    <option th:each="s : ${allStations}" th:value="${s.stationCode}" th:text="${s.stationName} + ' (' + ${s.city} + ')'"></option>
+                </datalist>
+            </div>
+        </div>
+
+        <!-- Passenger Details Card -->
+        <div class="ir-card">
+            <div class="ir-card-header">
+                <span>2. Passenger Demographics &amp; Identification</span>
+                <div>
+                    <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted); margin-right: 0.5rem;">
+                        Max 6 passengers per booking
+                    </span>
+                    <a th:href="@{/booking(passengerCount=1, trainNumber=*{trainNumber}, source=*{sourceStationCode}, destination=*{destinationStationCode}, date=*{journeyDate})}" class="ir-btn ir-btn-outline ir-btn-sm">1 Pax</a>
+                    <a th:href="@{/booking(passengerCount=2, trainNumber=*{trainNumber}, source=*{sourceStationCode}, destination=*{destinationStationCode}, date=*{journeyDate})}" class="ir-btn ir-btn-outline ir-btn-sm">2 Pax</a>
+                    <a th:href="@{/booking(passengerCount=3, trainNumber=*{trainNumber}, source=*{sourceStationCode}, destination=*{destinationStationCode}, date=*{journeyDate})}" class="ir-btn ir-btn-outline ir-btn-sm">3 Pax</a>
+                    <a th:href="@{/booking(passengerCount=4, trainNumber=*{trainNumber}, source=*{sourceStationCode}, destination=*{destinationStationCode}, date=*{journeyDate})}" class="ir-btn ir-btn-outline ir-btn-sm">4 Pax</a>
+                </div>
+            </div>
+            <div class="ir-card-body">
+
+                <div th:each="pax, stat : *{passengers}" style="background: #f8fafc; border: 1px solid var(--ir-border); border-radius: 6px; padding: 1.25rem; margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--ir-border); padding-bottom: 0.5rem;">
+                        <strong style="color: var(--ir-navy); font-size: 0.95rem;" th:text="'Passenger #' + ${stat.count}">Passenger #1</strong>
+                        <span style="font-size: 0.75rem; color: var(--ir-text-muted);">Age &ge; 60 gets 40% base fare concession</span>
+                    </div>
+
+                    <div class="ir-form-grid">
+                        <div class="ir-form-group">
+                            <label class="ir-label">Full Name *</label>
+                            <input type="text" th:field="*{passengers[__${stat.index}__].fullName}" class="ir-input"
+                                   placeholder="As printed on official ID" required>
+                        </div>
+
+                        <div class="ir-form-group">
+                            <label class="ir-label">Age (Years) *</label>
+                            <input type="number" th:field="*{passengers[__${stat.index}__].age}" min="1" max="125" class="ir-input"
+                                   placeholder="e.g. 32" required>
+                        </div>
+
+                        <div class="ir-form-group">
+                            <label class="ir-label">Gender *</label>
+                            <select th:field="*{passengers[__${stat.index}__].gender}" class="ir-select" required>
+                                <option th:each="g : ${genders}" th:value="${g.name()}" th:text="${g.name()}"></option>
+                            </select>
+                        </div>
+
+                        <div class="ir-form-group">
+                            <label class="ir-label">Mobile Number</label>
+                            <input type="tel" th:field="*{passengers[__${stat.index}__].phone}" class="ir-input"
+                                   placeholder="10-digit mobile number">
+                        </div>
+
+                        <div class="ir-form-group">
+                            <label class="ir-label">Government ID Type *</label>
+                            <select th:field="*{passengers[__${stat.index}__].idProofType}" class="ir-select" required>
+                                <option th:each="id : ${idProofTypes}" th:value="${id.name()}" th:text="${id.label}"></option>
+                            </select>
+                        </div>
+
+                        <div class="ir-form-group">
+                            <label class="ir-label">ID Proof Number *</label>
+                            <input type="text" th:field="*{passengers[__${stat.index}__].idProofNumber}" class="ir-input"
+                                   placeholder="e.g. 1234-5678-9012" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submission Box -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--ir-border);">
+                    <div style="font-size: 0.85rem; color: var(--ir-text-muted);">
+                        ⚡ By clicking Book Ticket, you authorize seat allocation under Indian Railways reservation quota.
+                    </div>
+                    <div>
+                        <button type="submit" class="ir-btn ir-btn-primary" style="padding: 0.75rem 2rem; font-size: 1rem;">
+                            Confirm &amp; Generate PNR Ticket &rarr;
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </form>
+
+</section>
+</body>
+</html>

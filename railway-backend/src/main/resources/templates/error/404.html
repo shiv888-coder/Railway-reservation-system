@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Not Found — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <div style="max-width: 580px; margin: 3rem auto; text-align: center;">
+        <div class="ir-card" style="padding: 2.5rem 1.5rem; border-top: 4px solid var(--ir-gold);">
+            <div style="font-size: 3rem; margin-bottom: 0.75rem;">🔍</div>
+            <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--ir-navy); margin-bottom: 0.5rem;">Resource Not Found</h2>
+            <p style="color: var(--ir-text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;" th:text="${errorMessage}">
+                The requested train, station, or PNR reservation record could not be found in the Indian Railways database.
+            </p>
+            <div style="display: flex; justify-content: center; gap: 0.75rem;">
+                <a th:href="@{/trains/search}" class="ir-btn ir-btn-outline">
+                    Search Trains
+                </a>
+                <a th:href="@{/dashboard}" class="ir-btn ir-btn-primary">
+                    Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

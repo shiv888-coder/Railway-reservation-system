@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Cancel Ticket — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <!-- Page Header -->
+    <div style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--ir-navy);">Cancel Railway Ticket</h1>
+        <p style="color: var(--ir-text-muted); font-size: 0.9rem;">
+            Cancel confirmed reservations by 10-digit PNR. In accordance with Indian Railways rules, a 15% cancellation fee is deducted, an 85% refund is processed, and reserved seats are automatically restored to the inventory.
+        </p>
+    </div>
+
+    <!-- PNR Lookup Form -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>Step 1: Enter PNR to Lookup Ticket</span>
+            <span style="font-size: 0.8rem; font-weight: normal; color: var(--ir-text-muted);">10 numeric digits</span>
+        </div>
+        <div class="ir-card-body">
+            <form th:action="@{/cancellation}" method="get" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <input type="text" name="pnr" class="ir-input" style="flex: 1; min-width: 280px; font-size: 1.1rem; letter-spacing: 1px;"
+                       th:value="${searchedPnr}" placeholder="Enter 10-digit PNR..." maxlength="10" required>
+                <button type="submit" class="ir-btn ir-btn-primary">Find Ticket for Cancellation</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ticket Preview & Cancellation Confirmation -->
+    <div th:if="${reservation != null}" class="ir-card" style="border: 2px solid var(--ir-crimson);">
+        <div class="ir-card-header" style="background: #fef2f2; color: #991b1b;">
+            <span>⚠️ Step 2: Confirm Cancellation for PNR <span th:text="${reservation.pnr}">2849182374</span></span>
+            <span class="ir-badge ir-badge-confirmed">CONFIRMED TICKET</span>
+        </div>
+        <div class="ir-card-body">
+
+            <!-- Journey Summary -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 6px; border: 1px solid var(--ir-border);">
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Train</span>
+                    <div><strong th:text="${reservation.trainNumber}">12301</strong></div>
+                </div>
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Journey Route</span>
+                    <div><strong th:text="${reservation.sourceStationCode} + ' ➔ ' + ${reservation.destinationStationCode}">HWH ➔ NDLS</strong></div>
+                </div>
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Date of Journey</span>
+                    <div><strong th:text="${reservation.journeyDate}">2026-11-20</strong></div>
+                </div>
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--ir-text-muted); text-transform: uppercase;">Passengers</span>
+                    <div><strong th:text="${reservation.passengers.size()} + ' Travelers'">2 Travelers</strong></div>
+                </div>
+            </div>
+
+            <!-- Refund Calculation Breakdown -->
+            <div style="background: #fff; border: 1px solid var(--ir-border); border-radius: 6px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.05rem; color: var(--ir-navy); margin-bottom: 0.75rem;">Refund &amp; Deduction Summary</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--ir-text-muted);">Total Fare Paid:</div>
+                        <div style="font-size: 1.2rem; font-weight: 700; color: var(--ir-navy);"
+                             th:text="'₹' + ${#numbers.formatDecimal(reservation.totalFare, 1, 2)}">₹4,538.63</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color: #991b1b;">Cancellation Fee (15%):</div>
+                        <div style="font-size: 1.2rem; font-weight: 700; color: #991b1b;"
+                             th:text="'-₹' + ${#numbers.formatDecimal(feeEstimate, 1, 2)}">-₹680.79</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color: #065f46;">Net Refund Amount (85%):</div>
+                        <div style="font-size: 1.4rem; font-weight: 800; color: #059669;"
+                             th:text="'₹' + ${#numbers.formatDecimal(refundEstimate, 1, 2)}">₹3,857.84</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cancellation Submission Form -->
+            <form th:action="@{/cancellation/submit}" method="post">
+                <input type="hidden" name="pnr" th:value="${reservation.pnr}">
+                <div class="ir-form-group">
+                    <label class="ir-label">Cancellation Reason *</label>
+                    <select name="reason" class="ir-select" required>
+                        <option value="Change of travel plans">Change of travel plans</option>
+                        <option value="Personal emergency">Personal emergency</option>
+                        <option value="Rescheduled to another date">Rescheduled to another date</option>
+                        <option value="Booked by mistake">Booked by mistake</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem;">
+                    <a th:href="@{'/reservations/' + ${reservation.pnr}}" class="ir-btn ir-btn-outline">
+                        Keep Ticket (Do Not Cancel)
+                    </a>
+                    <button type="submit" class="ir-btn ir-btn-danger" style="font-size: 1rem; padding: 0.65rem 1.75rem;"
+                            onclick="return confirm('Are you sure you want to cancel this ticket? 15% cancellation fee will apply and seats will be released.');">
+                        Confirm Cancellation &amp; Process Refund &rarr;
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

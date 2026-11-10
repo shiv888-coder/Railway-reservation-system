@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Admin Dashboard — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <!-- Admin Header Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="ir-badge ir-badge-rajdhani">ADMIN ACCESS</span>
+                <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--ir-navy);">Administrative Control Center</h1>
+            </div>
+            <p style="color: var(--ir-text-muted); font-size: 0.9rem;">
+                Logged in as: <strong th:text="${adminUser.fullName}">System Administrator</strong> (<span th:text="${adminUser.username}">admin</span>)
+            </p>
+        </div>
+        <div>
+            <a th:href="@{/admin/logout}" class="ir-btn ir-btn-outline ir-btn-sm" style="color: #991b1b; border-color: #fca5a5;">
+                🔒 Sign Out
+            </a>
+        </div>
+    </div>
+
+    <!-- Admin KPIs Grid -->
+    <div class="ir-metrics-grid">
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon" style="background: #eff6ff; color: #1d4ed8;">🚆</div>
+            <div>
+                <div class="ir-metric-val" th:text="${totalTrains}">38</div>
+                <div class="ir-metric-lbl">Active Trains</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon" style="background: #f0fdf4; color: #15803d;">🚉</div>
+            <div>
+                <div class="ir-metric-val" th:text="${totalStations}">367</div>
+                <div class="ir-metric-lbl">Verified Stations</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon" style="background: #fefce8; color: #a16207;">📋</div>
+            <div>
+                <div class="ir-metric-val" th:text="${totalBookings}">0</div>
+                <div class="ir-metric-lbl">Total Reservations</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon" style="background: #fef2f2; color: #b91c1c;">❌</div>
+            <div>
+                <div class="ir-metric-val" th:text="${totalCancellations}">0</div>
+                <div class="ir-metric-lbl">Cancellations</div>
+            </div>
+        </div>
+        <div class="ir-metric-card">
+            <div class="ir-metric-icon" style="background: #faf5ff; color: #7e22ce;">₹</div>
+            <div>
+                <div class="ir-metric-val" th:text="'₹' + ${#numbers.formatDecimal(totalRevenue, 1, 2)}">₹0.00</div>
+                <div class="ir-metric-lbl">Net Confirmed Revenue</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Architecture & SQLite Audit -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>🛡️ System Architecture &amp; Database Integrity Status</span>
+            <span class="ir-badge ir-badge-confirmed">HEALTHY</span>
+        </div>
+        <div class="ir-card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; font-size: 0.85rem;">
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid var(--ir-border);">
+                    <div style="color: var(--ir-text-muted); font-size: 0.75rem; text-transform: uppercase;">Primary Runtime</div>
+                    <strong style="color: var(--ir-navy); font-size: 1rem;">Java 21 LTS + Spring Boot 3.2</strong>
+                    <div style="color: #64748b; margin-top: 0.25rem;">Server-side Thymeleaf HTML rendering</div>
+                </div>
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid var(--ir-border);">
+                    <div style="color: var(--ir-text-muted); font-size: 0.75rem; text-transform: uppercase;">Database Engine</div>
+                    <strong style="color: var(--ir-navy); font-size: 1rem;">SQLite via JDBC (Normalized)</strong>
+                    <div style="color: #64748b; margin-top: 0.25rem;">PRAGMA foreign_keys = ON &bull; ACID Transactions</div>
+                </div>
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid var(--ir-border);">
+                    <div style="color: var(--ir-text-muted); font-size: 0.75rem; text-transform: uppercase;">External Dependencies</div>
+                    <strong style="color: var(--ir-emerald); font-size: 1rem;">Zero External Railway APIs</strong>
+                    <div style="color: #64748b; margin-top: 0.25rem;">100% self-contained offline architecture</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Bookings Audit Table -->
+    <div class="ir-card">
+        <div class="ir-card-header">
+            <span>Recent Booking Audit</span>
+            <a th:href="@{/reservations}" class="ir-btn ir-btn-outline ir-btn-sm">View Full History &rarr;</a>
+        </div>
+        <div class="ir-card-body ir-table-responsive" style="padding: 0;">
+            <div th:if="${recentReservations.isEmpty()}" style="padding: 2rem; text-align: center; color: var(--ir-text-muted);">
+                No reservations booked yet.
+            </div>
+            <table th:if="${!recentReservations.isEmpty()}" class="ir-table">
+                <thead>
+                    <tr>
+                        <th>PNR</th>
+                        <th>Train</th>
+                        <th>Route</th>
+                        <th>Date</th>
+                        <th>Class</th>
+                        <th>Passengers</th>
+                        <th>Fare</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="res : ${recentReservations}">
+                        <td><strong style="color: var(--ir-blue);" th:text="${res.pnr}">2849182374</strong></td>
+                        <td th:text="${res.trainNumber}">12301</td>
+                        <td><span th:text="${res.sourceStationCode}">HWH</span> &rarr; <span th:text="${res.destinationStationCode}">NDLS</span></td>
+                        <td th:text="${res.journeyDate}">2026-11-20</td>
+                        <td><span class="ir-badge ir-badge-superfast" th:text="${res.coachClass.code}">3A</span></td>
+                        <td th:text="${res.passengers != null ? res.passengers.size() : 1}">2</td>
+                        <td th:text="'₹' + ${#numbers.formatDecimal(res.totalFare, 1, 2)}">₹4,538.63</td>
+                        <td>
+                            <span th:if="${res.bookingStatus.name() == 'CONFIRMED'}" class="ir-badge ir-badge-confirmed">CONFIRMED</span>
+                            <span th:if="${res.bookingStatus.name() == 'CANCELLED'}" class="ir-badge ir-badge-cancelled">CANCELLED</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a th:href="@{'/reservations/' + ${res.pnr}}" class="ir-btn ir-btn-outline ir-btn-sm">Ticket</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

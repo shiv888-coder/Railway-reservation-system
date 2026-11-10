@@ -1,5 +1,365 @@
 [
   {
+    "pnr": "4861725742",
+    "train": {
+      "trainNumber": "12377",
+      "trainName": "Padatik Superfast Express",
+      "trainType": "SUPERFAST",
+      "departureTime": "23:20:00",
+      "arrivalTime": "09:15:00",
+      "durationHours": "9h 55m",
+      "distanceKm": 567,
+      "daysOfOperation": [
+        "Daily"
+      ]
+    },
+    "sourceStation": {
+      "stationCode": "SDAH",
+      "stationName": "Sealdah"
+    },
+    "destinationStation": {
+      "stationCode": "NJP",
+      "stationName": "New Jalpaiguri Junction"
+    },
+    "journeyDate": "2026-11-20",
+    "travelClass": "THIRD_AC",
+    "bookingStatus": "CANCELLED",
+    "seatAllocations": [
+      {
+        "allocationId": 1794325813853,
+        "passenger": {
+          "passengerId": 1794325813853,
+          "fullName": "Test Automation Passenger",
+          "age": 26,
+          "gender": "MALE",
+          "phone": "+91 99999 88888",
+          "email": "auto.test@lab.edu",
+          "idProofType": "AADHAAR_CARD",
+          "idProofNumber": "9988-7766-5544",
+          "berthPreference": "Lower Berth"
+        },
+        "coachNumber": "B2",
+        "berthNumber": 12,
+        "berthType": "Lower Berth"
+      }
+    ],
+    "baseFare": 1050,
+    "reservationCharge": 40,
+    "superfastCharge": 45,
+    "cateringCharge": 0,
+    "gstAmount": 56.75,
+    "seniorDiscount": 0,
+    "totalFare": 1191.75,
+    "bookedAt": "2026-11-10T15:50:13.854Z",
+    "cancellationSlip": {
+      "cancelledAt": "2026-11-10T15:50:13.857Z",
+      "cancellationFee": 178.76,
+      "refundAmount": 1012.99,
+      "cancellationReason": "Automated test suite cancellation verification",
+      "refundReferenceId": "REF-59821377"
+    }
+  },
+  {
+    "pnr": "4708648960",
+    "train": {
+      "trainNumber": "12377",
+      "trainName": "Padatik Superfast Express",
+      "trainType": "SUPERFAST",
+      "departureTime": "23:20:00",
+      "arrivalTime": "09:15:00",
+      "durationHours": "9h 55m",
+      "distanceKm": 567,
+      "daysOfOperation": [
+        "Daily"
+      ]
+    },
+    "sourceStation": {
+      "stationCode": "SDAH",
+      "stationName": "Sealdah"
+    },
+    "destinationStation": {
+      "stationCode": "NJP",
+      "stationName": "New Jalpaiguri Junction"
+    },
+    "journeyDate": "2026-11-20",
+    "travelClass": "THIRD_AC",
+    "bookingStatus": "CANCELLED",
+    "seatAllocations": [
+      {
+        "allocationId": 1794324407808,
+        "passenger": {
+          "passengerId": 1794324407808,
+          "fullName": "Test Automation Passenger",
+          "age": 26,
+          "gender": "MALE",
+          "phone": "+91 99999 88888",
+          "email": "auto.test@lab.edu",
+          "idProofType": "AADHAAR_CARD",
+          "idProofNumber": "9988-7766-5544",
+          "berthPreference": "Lower Berth"
+        },
+        "coachNumber": "B2",
+        "berthNumber": 12,
+        "berthType": "Lower Berth"
+      }
+    ],
+    "baseFare": 1050,
+    "reservationCharge": 40,
+    "superfastCharge": 45,
+    "cateringCharge": 0,
+    "gstAmount": 56.75,
+    "seniorDiscount": 0,
+    "totalFare": 1191.75,
+    "bookedAt": "2026-11-10T15:26:47.808Z",
+    "cancellationSlip": {
+      "cancelledAt": "2026-11-10T15:26:47.812Z",
+      "cancellationFee": 178.76,
+      "refundAmount": 1012.99,
+      "cancellationReason": "Automated test suite cancellation verification",
+      "refundReferenceId": "REF-50062747"
+    }
+  },
+  {
+    "pnr": "4727964546",
+    "train": {
+      "trainNumber": "12377",
+      "trainName": "Padatik Superfast Express",
+      "trainType": "SUPERFAST",
+      "departureTime": "23:20:00",
+      "arrivalTime": "09:15:00",
+      "durationHours": "9h 55m",
+      "distanceKm": 567,
+      "daysOfOperation": [
+        "Daily"
+      ]
+    },
+    "sourceStation": {
+      "stationCode": "SDAH",
+      "stationName": "Sealdah"
+    },
+    "destinationStation": {
+      "stationCode": "NJP",
+      "stationName": "New Jalpaiguri Junction"
+    },
+    "journeyDate": "2026-11-20",
+    "travelClass": "THIRD_AC",
+    "bookingStatus": "CANCELLED",
+    "seatAllocations": [
+      {
+        "allocationId": 1793908254348,
+        "passenger": {
+          "passengerId": 1793908254348,
+          "fullName": "Test Automation Passenger",
+          "age": 26,
+          "gender": "MALE",
+          "phone": "+91 99999 88888",
+          "email": "auto.test@lab.edu",
+          "idProofType": "AADHAAR_CARD",
+          "idProofNumber": "9988-7766-5544",
+          "berthPreference": "Lower Berth"
+        },
+        "coachNumber": "B2",
+        "berthNumber": 12,
+        "berthType": "Lower Berth"
+      }
+    ],
+    "baseFare": 1050,
+    "reservationCharge": 40,
+    "superfastCharge": 45,
+    "cateringCharge": 0,
+    "gstAmount": 56.75,
+    "seniorDiscount": 0,
+    "totalFare": 1191.75,
+    "bookedAt": "2026-11-05T19:50:54.348Z",
+    "cancellationSlip": {
+      "cancelledAt": "2026-11-05T19:50:54.352Z",
+      "cancellationFee": 178.76,
+      "refundAmount": 1012.99,
+      "cancellationReason": "Automated test suite cancellation verification",
+      "refundReferenceId": "REF-43856181"
+    }
+  },
+  {
+    "pnr": "7087468818",
+    "train": {
+      "trainNumber": "12377",
+      "trainName": "Padatik Superfast Express",
+      "trainType": "SUPERFAST",
+      "departureTime": "23:20:00",
+      "arrivalTime": "09:15:00",
+      "durationHours": "9h 55m",
+      "distanceKm": 567,
+      "daysOfOperation": [
+        "Daily"
+      ]
+    },
+    "sourceStation": {
+      "stationCode": "SDAH",
+      "stationName": "Sealdah"
+    },
+    "destinationStation": {
+      "stationCode": "NJP",
+      "stationName": "New Jalpaiguri Junction"
+    },
+    "journeyDate": "2026-11-20",
+    "travelClass": "THIRD_AC",
+    "bookingStatus": "CANCELLED",
+    "seatAllocations": [
+      {
+        "allocationId": 1793908222731,
+        "passenger": {
+          "passengerId": 1793908222731,
+          "fullName": "Test Automation Passenger",
+          "age": 26,
+          "gender": "MALE",
+          "phone": "+91 99999 88888",
+          "email": "auto.test@lab.edu",
+          "idProofType": "AADHAAR_CARD",
+          "idProofNumber": "9988-7766-5544",
+          "berthPreference": "Lower Berth"
+        },
+        "coachNumber": "B2",
+        "berthNumber": 12,
+        "berthType": "Lower Berth"
+      }
+    ],
+    "baseFare": 1050,
+    "reservationCharge": 40,
+    "superfastCharge": 45,
+    "cateringCharge": 0,
+    "gstAmount": 56.75,
+    "seniorDiscount": 0,
+    "totalFare": 1191.75,
+    "bookedAt": "2026-11-05T19:50:22.731Z",
+    "cancellationSlip": {
+      "cancelledAt": "2026-11-05T19:50:22.735Z",
+      "cancellationFee": 178.76,
+      "refundAmount": 1012.99,
+      "cancellationReason": "Automated test suite cancellation verification",
+      "refundReferenceId": "REF-46849544"
+    }
+  },
+  {
+    "pnr": "9933470948",
+    "train": {
+      "trainNumber": "12377",
+      "trainName": "Padatik Superfast Express",
+      "trainType": "SUPERFAST",
+      "departureTime": "23:20:00",
+      "arrivalTime": "09:15:00",
+      "durationHours": "9h 55m",
+      "distanceKm": 567,
+      "daysOfOperation": [
+        "Daily"
+      ]
+    },
+    "sourceStation": {
+      "stationCode": "SDAH",
+      "stationName": "Sealdah"
+    },
+    "destinationStation": {
+      "stationCode": "NJP",
+      "stationName": "New Jalpaiguri Junction"
+    },
+    "journeyDate": "2026-11-20",
+    "travelClass": "THIRD_AC",
+    "bookingStatus": "CANCELLED",
+    "seatAllocations": [
+      {
+        "allocationId": 1793908112375,
+        "passenger": {
+          "passengerId": 1793908112375,
+          "fullName": "Test Automation Passenger",
+          "age": 26,
+          "gender": "MALE",
+          "phone": "+91 99999 88888",
+          "email": "auto.test@lab.edu",
+          "idProofType": "AADHAAR_CARD",
+          "idProofNumber": "9988-7766-5544",
+          "berthPreference": "Lower Berth"
+        },
+        "coachNumber": "B2",
+        "berthNumber": 12,
+        "berthType": "Lower Berth"
+      }
+    ],
+    "baseFare": 1050,
+    "reservationCharge": 40,
+    "superfastCharge": 45,
+    "cateringCharge": 0,
+    "gstAmount": 56.75,
+    "seniorDiscount": 0,
+    "totalFare": 1191.75,
+    "bookedAt": "2026-11-05T19:48:32.375Z",
+    "cancellationSlip": {
+      "cancelledAt": "2026-11-05T19:48:32.379Z",
+      "cancellationFee": 178.76,
+      "refundAmount": 1012.99,
+      "cancellationReason": "Automated test suite cancellation verification",
+      "refundReferenceId": "REF-53907780"
+    }
+  },
+  {
+    "pnr": "3026668785",
+    "train": {
+      "trainNumber": "12377",
+      "trainName": "Padatik Superfast Express",
+      "trainType": "SUPERFAST",
+      "departureTime": "23:20:00",
+      "arrivalTime": "09:15:00",
+      "durationHours": "9h 55m",
+      "distanceKm": 567,
+      "daysOfOperation": [
+        "Daily"
+      ]
+    },
+    "sourceStation": {
+      "stationCode": "SDAH",
+      "stationName": "Sealdah"
+    },
+    "destinationStation": {
+      "stationCode": "NJP",
+      "stationName": "New Jalpaiguri Junction"
+    },
+    "journeyDate": "2026-11-20",
+    "travelClass": "THIRD_AC",
+    "bookingStatus": "CANCELLED",
+    "seatAllocations": [
+      {
+        "allocationId": 1793907945282,
+        "passenger": {
+          "passengerId": 1793907945282,
+          "fullName": "Test Automation Passenger",
+          "age": 26,
+          "gender": "MALE",
+          "phone": "+91 99999 88888",
+          "email": "auto.test@lab.edu",
+          "idProofType": "AADHAAR_CARD",
+          "idProofNumber": "9988-7766-5544",
+          "berthPreference": "Lower Berth"
+        },
+        "coachNumber": "B2",
+        "berthNumber": 12,
+        "berthType": "Lower Berth"
+      }
+    ],
+    "baseFare": 1050,
+    "reservationCharge": 40,
+    "superfastCharge": 45,
+    "cateringCharge": 0,
+    "gstAmount": 56.75,
+    "seniorDiscount": 0,
+    "totalFare": 1191.75,
+    "bookedAt": "2026-11-05T19:45:45.282Z",
+    "cancellationSlip": {
+      "cancelledAt": "2026-11-05T19:45:45.285Z",
+      "cancellationFee": 178.76,
+      "refundAmount": 1012.99,
+      "cancellationReason": "Automated test suite cancellation verification",
+      "refundReferenceId": "REF-89463676"
+    }
+  },
+  {
     "pnr": "2849182374",
     "train": {
       "trainNumber": "12301",

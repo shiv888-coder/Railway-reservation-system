@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>Admin Login — Indian Railway Reservation System</title>
+</head>
+<body>
+<section>
+
+    <div style="max-width: 440px; margin: 3rem auto;">
+        <div class="ir-card" style="border: 2px solid var(--ir-navy); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div class="ir-card-header" style="background: var(--ir-navy); color: white; justify-content: center; padding: 1.25rem;">
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 0.25rem;">🛡️</div>
+                    <h2 style="font-size: 1.25rem; font-weight: 800;">Administrator Console</h2>
+                    <div style="font-size: 0.8rem; color: #94a3b8;">Group 9 Railway Reservation System</div>
+                </div>
+            </div>
+            <div class="ir-card-body" style="padding: 1.75rem;">
+                <form th:action="@{/admin/authenticate}" method="post">
+                    <div class="ir-form-group">
+                        <label class="ir-label">Admin Username</label>
+                        <input type="text" name="username" class="ir-input" placeholder="e.g. admin" required autofocus>
+                    </div>
+
+                    <div class="ir-form-group">
+                        <label class="ir-label">Password</label>
+                        <input type="password" name="password" class="ir-input" placeholder="Enter administrative password" required>
+                    </div>
+
+                    <button type="submit" class="ir-btn ir-btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem; font-size: 1rem;">
+                        Secure Admin Sign In &rarr;
+                    </button>
+                </form>
+
+                <div style="background: #f8fafc; border: 1px solid var(--ir-border); border-radius: 6px; padding: 0.75rem; margin-top: 1.5rem; font-size: 0.8rem; color: var(--ir-text-muted);">
+                    <strong>Default Credentials:</strong><br>
+                    Username: <code style="color: var(--ir-blue);">admin</code><br>
+                    Password: <code style="color: var(--ir-blue);">admin123</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

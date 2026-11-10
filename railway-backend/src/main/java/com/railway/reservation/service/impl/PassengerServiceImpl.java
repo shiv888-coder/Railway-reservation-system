@@ -1,73 +1,67 @@
 package com.railway.reservation.service.impl;
 
-import com.railway.reservation.dto.PassengerDto;
-import com.railway.reservation.entity.PassengerEntity;
-import com.railway.reservation.exception.ResourceNotFoundException;
-import com.railway.reservation.repository.PassengerRepository;
+import com.railway.reservation.dao.PassengerDAO;
+import com.railway.reservation.exception.InvalidPassengerException;
+import com.railway.reservation.exception.InvalidPnrException;
+import com.railway.reservation.model.Passenger;
 import com.railway.reservation.service.PassengerService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 /**
- * Concrete implementation of PassengerService.
+ * Service implementation for passenger validation and retrieval.
  */
-@Service
 public class PassengerServiceImpl implements PassengerService {
 
-    private final PassengerRepository passengerRepository;
+    private final PassengerDAO passengerDAO;
 
-    public PassengerServiceImpl(PassengerRepository passengerRepository) {
-        this.passengerRepository = passengerRepository;
+    public PassengerServiceImpl() {
+        this(new PassengerDAO());
+    }
+
+    public PassengerServiceImpl(PassengerDAO passengerDAO) {
+        this.passengerDAO = passengerDAO;
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<PassengerEntity> getAllPassengers() {
-        return passengerRepository.findAll();
+    public void validatePassenger(Passenger p) {
+        if (p == null) {
+            throw new InvalidPassengerException("Passenger object cannot be null.");
+        }
+        if (p.getFullName() == null || p.getFullName().trim().isEmpty()) {
+            throw new InvalidPassengerException("Passenger full name cannot be blank.");
+        }
+        if (p.getAge() <= 0 || p.getAge() > 125) {
+            throw new InvalidPassengerException("Passenger age must be between 1 and 125 (was: " + p.getAge() + ").");
+        }
+        if (p.getGender() == null) {
+            throw new InvalidPassengerException("Passenger gender must be specified.");
+        }
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public PassengerEntity getPassengerById(Long id) {
-        return passengerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Passenger", "id", id));
+    public void validatePassengers(List<Passenger> passengers) {
+        if (passengers == null || passengers.isEmpty()) {
+            throw new InvalidPassengerException("At least one passenger must be provided for booking.");
+        }
+        if (passengers.size() > 6) {
+            throw new InvalidPassengerException("A maximum of 6 passengers are allowed per booking under Indian Railways rules.");
+        }
+        for (Passenger p : passengers) {
+            validatePassenger(p);
+        }
     }
 
     @Override
-    @Transactional
-    public PassengerEntity createPassenger(PassengerDto dto) {
-        PassengerEntity entity = new PassengerEntity(
-                dto.getFullName(),
-                dto.getAge(),
-                dto.getGender(),
-                dto.getPhone(),
-                dto.getEmail(),
-                dto.getIdProofType(),
-                dto.getIdProofNumber()
-        );
-        return passengerRepository.save(entity);
+    public List<Passenger> getPassengersByPnr(String pnr) {
+        if (pnr == null || pnr.trim().length() != 10) {
+            throw new InvalidPnrException("PNR must be a 10-digit numeric string (was: " + pnr + ").");
+        }
+        return passengerDAO.findByPnr(pnr.trim());
     }
 
     @Override
-    @Transactional
-    public PassengerEntity updatePassenger(Long id, PassengerDto dto) {
-        PassengerEntity existing = getPassengerById(id);
-        existing.setFullName(dto.getFullName());
-        existing.setAge(dto.getAge());
-        existing.setGender(dto.getGender());
-        existing.setPhone(dto.getPhone());
-        existing.setEmail(dto.getEmail());
-        existing.setIdProofType(dto.getIdProofType());
-        existing.setIdProofNumber(dto.getIdProofNumber());
-        return passengerRepository.save(existing);
-    }
-
-    @Override
-    @Transactional
-    public void deletePassenger(Long id) {
-        PassengerEntity existing = getPassengerById(id);
-        passengerRepository.delete(existing);
+    public List<Passenger> getAllPassengers() {
+        return passengerDAO.findAll();
     }
 }
